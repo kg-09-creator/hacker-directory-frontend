@@ -3,8 +3,8 @@
 # Frontend Hacker Directory To My Digital Guestbook API
 Hi, this is a member management system featuring a retro-future terminal interface! It allows users to create a profile with a secure passkey, view others' profiles, or search for a specific user. You can also delete a profile you made using your secure passkey - preventing anyone but you from accessing your own profiles.
 
-## Live Link
-Live Terminal (Frontend):(https://kg-09-creator.github.io/hacker-directory-frontend/)
+## Live Links
+- **Live Terminal (Frontend):** (https://kg-09-creator.github.io/hacker-directory-frontend/)
 - **API Mainframe (Backend):** (https://kgs-guestbook-api.onrender.com)
 
  ## Tech Stack
