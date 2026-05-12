@@ -5,7 +5,7 @@ Hi, this is a member management system featuring a retro-future terminal interfa
 
 ## Live Link
 Live Terminal (Frontend):(https://kg-09-creator.github.io/hacker-directory-frontend/)
-**API Mainframe (Backend):** (https://kgs-guestbook-api.onrender.com)
+- **API Mainframe (Backend):** (https://kgs-guestbook-api.onrender.com)
 
  ## Tech Stack
 - **Backend:** Python, FastAPI, Uvicorn (Hosted on Render)
@@ -13,7 +13,7 @@ Live Terminal (Frontend):(https://kg-09-creator.github.io/hacker-directory-front
 - **Time Tracking:** Logged via Hackatime
 
 Features
-- **Secure Purge Protocol:** Profiles are protected by a `SECRET_PASSKEY`. Only the creator can delete their entry.
+- **Secure Delete Protocol:** Profiles are protected by a `SECRET_PASSKEY`. Only the creator can delete their entry.
 - **Real-Time Dashboards:** 
     - `SYSTEM_VIBE`: An endpoint that analyzes the directory status.
     - `MEMBERS_SYNCED`: A live counter of active hacker connections.
