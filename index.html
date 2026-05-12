@@ -94,24 +94,28 @@
 
         async function deleteUser(name) {
     const key = prompt(`Enter passkey for ${name}:`);
-    if(!key) return;
+    if (!key) return;
 
     try {
-        const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
-        
-        // This is the critical fix: check if the response code is 200-299
-        if(response.ok) {
+        const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { 
+            method: 'DELETE' 
+        });
+
+        // CRITICAL FIX: Check if the response was actually successful
+        if (response.ok) {
             alert("SUCCESS: Profile purged.");
-            updateData(); // Refreshes the list
+            updateData(); // Refresh the list
         } else {
-            // If the status is 403 (Wrong Key) or 404 (Not Found)
+            // If the server sent an error (like 403 or 404)
             const result = await response.json();
             alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
         }
     } catch (err) {
+        // This only runs if the network is down or the server is unreachable
         alert("CRITICAL ERROR: Connection to mainframe lost.");
     }
 }
+
 
         // Matrix Rain Logic
         const canvas = document.getElementById('matrix-rain');
