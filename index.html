@@ -93,16 +93,25 @@
         });
 
         async function deleteUser(name) {
-            const key = prompt(`Enter passkey for ${name}:`);
-            if(!key) return;
-            const res = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
-            if(res.ok) {
-                alert("SUCCESS: Purged.");
-                updateData();
-            } else { 
-                alert("ACCESS DENIED: Wrong passkey.");
-            }
+    const key = prompt(`Enter passkey for ${name}:`);
+    if(!key) return;
+
+    try {
+        const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
+        
+        // This is the critical fix: check if the response code is 200-299
+        if(response.ok) {
+            alert("SUCCESS: Profile purged.");
+            updateData(); // Refreshes the list
+        } else {
+            // If the status is 403 (Wrong Key) or 404 (Not Found)
+            const result = await response.json();
+            alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
         }
+    } catch (err) {
+        alert("CRITICAL ERROR: Connection to mainframe lost.");
+    }
+}
 
         // Matrix Rain Logic
         const canvas = document.getElementById('matrix-rain');
