@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hacker Directory Terminal</title>
+    <style>
+        #matrix-rain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1; /* Puts it in the background */
+    width: 100%;
+    height: 100%;
+}
+
+        body { 
+            background-color: #0d0208; 
+            color: #00ff41; 
+            font-family: 'Courier New', Courier, monospace; 
+            padding: 20px; 
+        } 
+        .terminal-header { 
+            border-bottom: 2px solid #00ff41; 
+            padding-bottom: 10px; 
+            margin-bottom: 30px; 
+            /* This adds the dark background to your cards */
+        } 
+        .terminal-header {
+            background-color: rgba(13, 2, 8, 0.9);
+            border: 1px solid #00ff41;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .profile-card { 
+            border: 1px solid #00ff41; 
+            margin: 10px 0; 
+            padding: 10px; 
+            /* This adds the dark background to your cards */
+
+        }
+        .profile-card {
+            background-color: rgba(13, 2, 8, 0.85); /* 85% solid black */
+            border: 1px solid #00ff41;
+            margin: 10px 0;
+            padding: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); /* Subtle green glow */
+        }
+
+        input, button {
+             background-color: #0d0208;
+             color: #00ff41;
+             border: 1px solid #00ff41;
+             padding: 10px;
+             margin: 5px;
+             font-family: 'Courier New', monospace;
+        }
+        button:hover {
+            background-color: #00ff41;
+            color: #0d0208;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <canvas id="matrix-rain"></canvas>
+    <div class="terminal-header">
+        <h1>> HACKER_DIRECTORY_V2.EXE</h1>
+        <p>Connecting to backend API...</p>
+    </div>
+
+    <div class="terminal-header">
+        <h2>> JOIN_THE_CREW.exe</h2>
+        <form id="join-form">
+            <input type="text" id="name" placeholder="NAME" required>
+            <input type="text" id="skill" placeholder="SKILL" required>
+            <input type="text" id="github" placeholder="GITHUB_USER" required>
+            <button type="submit">_SUBMIT</button>
+        </form>
+    </div>
+
+    <div id="hacker-list"> 
+        <p>[SYSTEM] Loading member data...</p>
+    </div>
+
+    <script>
+        const API_URL = "https://kgs-guestbook-api.onrender.com/profiles";
+        setInterval(loadHackers, 30000); 
+        async function loadHackers() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                const listDiv = document.getElementById("hacker-list");
+                listDiv.innerHTML = ""; 
+
+                data.forEach(hacker => {
+                    const card = document.createElement("div");
+                    card.className = "profile-card";
+                    card.innerHTML = `
+                        <h3>> USER: ${hacker.name}</h3>
+                        <p>SKILL: ${hacker.skill}</p>
+                        <p>GITHUB: ${hacker.github_username}</p>
+                    `;
+                    listDiv.appendChild(card);
+                });
+            } catch (error) {
+                document.getElementById("hacker-list").innerHTML = "[ERROR] Connection failed.";
+                console.error("Error:", error);
+            }
+        }
+        loadHackers();
+
+document.getElementById('join-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); // Prevents the page from refreshing
+    
+    const newProfile = {
+        name: document.getElementById('name').value,
+        skill: document.getElementById('skill').value,
+        github_username: document.getElementById('github').value
+    };
+
+    try {
+        const response = await fetch("https://kgs-guestbook-api.onrender.com/join", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newProfile)
+        });
+
+        if (response.ok) {
+            alert("SUCCESS: User added to mainframe.");
+            loadHackers(); // Refresh the list automatically!
+            e.target.reset(); // Clear the form
+        }
+    } catch (err) {
+        alert("CRITICAL_ERROR: Failed to transmit data.");
+    }
+});
+
+const canvas = document.getElementById('matrix-rain');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const fontSize = 16;
+const columns = canvas.width / fontSize;
+const drops = Array(Math.floor(columns)).fill(1);
+
+function draw() {
+    ctx.fillStyle = "rgba(13, 2, 8, 0.05)"; // Creates the trail effect
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#00ff41"; // Matrix Green
+    ctx.font = fontSize + "px monospace";
+
+    for (let i = 0; i < drops.length; i++) {
+        const text = characters.charAt(Math.floor(Math.random() * characters.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+        }
+        drops[i]++;
+    }
+}
+
+setInterval(draw, 33);
+
+    </script>
+</body>
+</html>
