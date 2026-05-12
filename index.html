@@ -3,236 +3,127 @@
 <head>
     <title>Hacker Directory Terminal</title>
     <style>
-        /* 1. Matrix Background */
-        #matrix-rain {
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* 2. Global Styles */
-        body {
-            background-color: #0d0208;
-            color: #00ff41;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 20px;
-            margin: 0;
-        }
-
-        /* 3. Header and Container Styles */
-        .terminal-header {
-            background-color: rgba(13, 2, 8, 0.9);
-            border: 1px solid #00ff41;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
-        }
-
-        .status-bar {
-            text-align: right;
-            font-size: 0.8em;
-            margin-bottom: 10px;
-            background: rgba(0,0,0,0.5);
-            padding: 5px;
-        }
-
-        /* 4. Profile Card Styles */
-        .profile-card {
-            background-color: rgba(13, 2, 8, 0.85);
-            border: 1px solid #00ff41;
-            margin: 15px 0;
-            padding: 15px;
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
-        }
-
-        /* 5. Form and Button Styles */
-        input, button {
-            background-color: #0d0208;
-            color: #00ff41;
-            border: 1px solid #00ff41;
-            padding: 10px;
-            margin: 5px;
-            font-family: 'Courier New', monospace;
-        }
-
-        button:hover {
-            background-color: #00ff41;
-            color: #0d0208;
-            cursor: pointer;
-        }
-
-        .delete-btn {
-            color: #ff0000 !important;
-            border-color: #ff0000 !important;
-            font-size: 0.8em;
-            margin-top: 10px;
-        }
-
-        .delete-btn:hover {
-            background-color: #ff0000 !important;
-            color: white !important;
-        }
+        #matrix-rain { position: fixed; top: 0; left: 0; z-index: -1; width: 100%; height: 100%; }
+        body { background-color: #0d0208; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; margin: 0; }
+        .status-bar { text-align: right; font-size: 0.8em; margin-bottom: 10px; background: rgba(0,0,0,0.5); padding: 5px; }
+        .terminal-header { background-color: rgba(13, 2, 8, 0.9); border: 1px solid #00ff41; padding: 20px; margin-bottom: 20px; }
+        .profile-card { background-color: rgba(13, 2, 8, 0.85); border: 1px solid #00ff41; margin: 15px 0; padding: 15px; }
+        input, button { background-color: #0d0208; color: #00ff41; border: 1px solid #00ff41; padding: 10px; margin: 5px; font-family: 'Courier New', monospace; }
+        button:hover { background-color: #00ff41; color: #0d0208; cursor: pointer; }
+        .delete-btn { color: #ff0000 !important; border-color: #ff0000 !important; font-size: 0.8em; }
     </style>
 </head>
 <body>
     <canvas id="matrix-rain"></canvas>
-
     <div class="status-bar">
-        SYSTEM_STATUS: <span id="server-status">INITIALIZING...</span> | 
-        HACKERS_LOADED: <span id="member-count">0</span>
+        STATUS: <span id="server-status">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
     </div>
-
     <div class="terminal-header">
         <h1>> HACKER_DIRECTORY_V2.EXE</h1>
-        <p>> SYSTEM_VIBE: <span id="vibe-text" style="font-weight: bold;">ANALYZING...</span></p>
+        <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
-
     <div class="terminal-header">
         <h2>> JOIN_THE_MAINFRAME.exe</h2>
         <form id="join-form">
             <input type="text" id="name" placeholder="NAME" required>
             <input type="text" id="skill" placeholder="SKILL" required>
             <input type="text" id="github" placeholder="GITHUB_USER" required>
-            <!-- New Password Field -->
             <input type="password" id="passkey" placeholder="SECRET_PASSKEY" required>
             <button type="submit">_SUBMIT_DATA</button>
         </form>
     </div>
-
-    <div id="hacker-list">
-        <p>[SYSTEM] Searching for active connections...</p>
-    </div>
+    <div id="hacker-list"></div>
 
     <script>
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
 
-        // --- 1. DATA LOADING ---
-        async function loadHackers() {
+        async function updateData() {
             try {
-                const response = await fetch(`${BASE_URL}/profiles`);
-                const data = await response.json();
-                const listDiv = document.getElementById("hacker-list");
-                listDiv.innerHTML = "";
-                data.forEach(hacker => {
+                // 1. Fetch Profiles
+                const res = await fetch(`${BASE_URL}/profiles`);
+                const data = await res.json();
+                const list = document.getElementById("hacker-list");
+                list.innerHTML = "";
+                data.forEach(h => {
                     const card = document.createElement("div");
                     card.className = "profile-card";
-                    card.innerHTML = `
-                        <h3>> USER: ${hacker.name}</h3>
-                        <p>SKILL: ${hacker.skill}</p>
-                        <p>GITHUB: ${hacker.github_username}</p>
-                        <button class="delete-btn" onclick="deleteUser('${hacker.name}')">[DELETE_USER]</button>
-                    `;
-                    listDiv.appendChild(card);
+                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
+                    list.appendChild(card);
                 });
+
+                // 2. Update Stats
+                const sRes = await fetch(`${BASE_URL}/stats`);
+                const sData = await sRes.json();
+                document.getElementById("member-count").innerText = sData.total_hackers;
+
+                // 3. Update Vibe
+                const vRes = await fetch(`${BASE_URL}/vibe`);
+                const vData = await vRes.json();
+                document.getElementById("vibe-text").innerText = vData.vibe;
+                
                 document.getElementById("server-status").innerText = "ONLINE";
-            } catch (error) {
-                document.getElementById("hacker-list").innerHTML = "[ERROR] Connection to mainframe failed.";
+            } catch (e) { 
                 document.getElementById("server-status").innerText = "OFFLINE";
+                console.error("Connection error:", e);
             }
         }
 
-        // --- 2. JOIN LOGIC ---
         document.getElementById('join-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const newProfile = {
+            const payload = {
                 name: document.getElementById('name').value,
                 skill: document.getElementById('skill').value,
                 github_username: document.getElementById('github').value,
-                passkey: document.getElementById('passkey').value 
+                passkey: document.getElementById('passkey').value
             };
-            try {
-                const response = await fetch(`${BASE_URL}/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newProfile)
-                });
-                if (response.ok) {
-                    loadHackers();
-                    updateVibe();
-                    updateStats();
-                    e.target.reset();
-                    alert("SUCCESS: User added to mainframe.");
-                }
-            } catch (err) {
-                alert("CRITICAL ERROR: Data transmission failed.");
+
+            const response = await fetch(`${BASE_URL}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert("SUCCESS: Added to mainframe.");
+                updateData(); // Refresh everything
+                e.target.reset();
+            } else {
+                alert("ERROR: Failed to join.");
             }
         });
 
-        // --- 3. DELETE LOGIC ---
         async function deleteUser(name) {
-            const userKey = prompt(`Enter the SECRET_PASSKEY for ${name} to authorize deletion:`);
-            if (!userKey) return;
-            try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${userKey}`, {
-                    method: 'DELETE'
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    alert("SUCCESS: Profile deleted.");
-                    loadHackers();
-                    updateVibe();
-                    updateStats();
-                } else {
-                    alert("ACCESS_DENIED: " + (result.error || "Invalid key."));
-                }
-            } catch (err) {
-                alert("CRITICAL_ERROR: Connection failed.");
+            const key = prompt(`Enter passkey for ${name}:`);
+            if(!key) return;
+            const res = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
+            if(res.ok) {
+                alert("SUCCESS: Purged.");
+                updateData();
+            } else { 
+                alert("ACCESS DENIED: Wrong passkey.");
             }
         }
 
-        // --- 4. STATUS & VIBE ---
-        async function updateStats() {
-            try {
-                const response = await fetch(`${BASE_URL}/stats`);
-                const data = await response.json();
-                document.getElementById("member-count").innerText = data.total_hackers;
-            } catch (err) {
-                console.log("Stats sync error");
-            }
-        }
-
-        async function updateVibe() {
-            try {
-                const response = await fetch(`${BASE_URL}/vibe`);
-                const data = await response.json();
-                document.getElementById("vibe-text").innerText = data.vibe;
-            } catch (err) {
-                document.getElementById("vibe-text").innerText = "UNKNOWN";
-            }
-        }
-
-        // --- 5. MATRIX RAIN ANIMATION ---
+        // Matrix Rain Logic
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@&";
-        const fontSize = 16;
-        const columns = canvas.width / fontSize;
-        const drops = Array(Math.floor(columns)).fill(1);
-
-        function drawMatrix() {
-            ctx.fillStyle = "rgba(13, 2, 8, 0.1)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#00ff41";
-            ctx.font = fontSize + "px monospace";
-            for (let i = 0; i < drops.length; i++) {
-                const text = characters.charAt(Math.floor(Math.random() * characters.length));
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        const chars = "0123456789ABCDEF";
+        const drops = Array(Math.floor(canvas.width/16)).fill(1);
+        function draw() {
+            ctx.fillStyle = "rgba(13,2,8,0.1)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#00ff41"; ctx.font = "16px monospace";
+            drops.forEach((y, i) => {
+                ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
+                if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
                 drops[i]++;
-            }
+            });
         }
-
-        // --- INITIALIZE ---
-        setInterval(drawMatrix, 35);
-        setInterval(loadHackers, 30000); 
-        loadHackers();
-        updateStats();
-        updateVibe();
+        setInterval(draw, 33);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(updateData, 30000);
+        updateData();
     </script>
 </body>
 </html>
