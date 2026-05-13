@@ -94,7 +94,6 @@
     <div id="hacker-list"></div>
 
     <script>
-        // FIXED: Re-established the full Render API Endpoint string
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
         let isTyping = false; 
 
@@ -137,7 +136,9 @@
 
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
-                document.getElementById("vibe-text").innerText = vData.vibe;
+                
+                // FIXED: Run the typewriter for the dynamic API vibe value instead of snapping text instantly
+                typeWriter(vData.vibe, "vibe-text", 100);
 
                 if (!isTyping) {
                     document.getElementById("server-status").innerText = "ONLINE";
@@ -186,7 +187,6 @@
             }
         }
 
-        // Search directory filtration
         function filterHackers() {
             const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
             const cards = document.querySelectorAll('.profile-card');
@@ -196,7 +196,7 @@
             });
         }
 
-        // Matrix Rain Canvas Loop
+        // Matrix Rain
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -218,13 +218,11 @@
 
         setInterval(draw, 33);
         
-        // SEQUENTIAL BOOT SEQUENCE ENGINE:
-        // Step 1: Animate the primary terminal title header
+        // SEQUENTIAL BOOT SEQUENCE ENGINE
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
-            // Step 2: Once completed, animate the status label characters
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                // Step 3: Run the initial API fetch and schedule the 30-second loop
                 updateData();
+                // Start background syncing loop every 30 seconds
                 setInterval(updateData, 30000);
             });
         });
