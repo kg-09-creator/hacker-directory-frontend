@@ -31,11 +31,25 @@
             padding: 20px;
             margin-bottom: 20px;
         }
+        /* EXPERT ELEMENT: CRT Scanline and Green Glow Effect */
         .profile-card {
             background-color: rgba(13, 2, 8, 0.85);
             border: 1px solid #00ff41;
             margin: 15px 0;
             padding: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+        .profile-card::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
         }
         input, button {
             background-color: #0d0208;
@@ -61,16 +75,27 @@
             border-color: #ff0000 !important;
             font-size: 0.8em;
         }
+
+        /* EXPERT ELEMENT: Blinking Block Terminal Cursor */
+        .typing::after {
+            content: "█";
+            animation: blink 0.8s infinite steps(2);
+            margin-left: 4px;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
     </style>
 </head>
 <body>
     <canvas id="matrix-rain"></canvas>
     <div class="status-bar">
-        STATUS: <span id="server-status">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
+        STATUS: <span id="server-status" class="typing">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
     </div>
 
     <div class="terminal-header">
-        <h1 id="terminal-title">> HACKER_DIRECTORY_V2.EXE</h1>
+        <h1 id="terminal-title" class="typing">> HACKER_DIRECTORY_V2.EXE</h1>
         <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
 
@@ -94,24 +119,56 @@
     <div id="hacker-list"></div>
 
     <script>
-        // FIXED: Re-established the full Render API Endpoint string
-        const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+        const BASE_URL = "onrender.com";
         let isTyping = false; 
+
+        // EXPERT ELEMENT: Web Audio Synthesizer for Terminal Keystrokes
+        function playTerminalClick() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(950, audioCtx.currentTime); 
+                gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime); 
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.02); 
+            } catch (e) {
+                // Browsers safely block audio until the user clicks or submits something
+            }
+        }
+
+        // EXPERT ELEMENT: Cryptographic SHA-256 Hashing for Passkeys
+        async function hashPasskey(password) {
+            const msgBuffer = new TextEncoder().encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
         function typeWriter(text, elementId, speed, callback) {
             isTyping = true;
             let i = 0;
             const element = document.getElementById(elementId);
             if (!element) return;
+            
+            element.classList.add("typing");
             element.innerHTML = ""; 
 
             function type() {
                 if (i < text.length) {
                     element.innerHTML += text.charAt(i);
+                    playTerminalClick(); // Play synth sound per character
                     i++;
                     setTimeout(type, speed);
                 } else {
                     isTyping = false; 
+                    element.classList.remove("typing");
                     if (callback) callback(); 
                 }
             }
@@ -137,7 +194,11 @@
 
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
-                document.getElementById("vibe-text").innerText = vData.vibe;
+                
+                document.getElementById("vibe-text").classList.add("typing");
+                typeWriter(vData.vibe, "vibe-text", 80, function() {
+                    document.getElementById("vibe-text").classList.remove("typing");
+                });
 
                 if (!isTyping) {
                     document.getElementById("server-status").innerText = "ONLINE";
@@ -149,44 +210,52 @@
             }
         }
 
+        // EXPERT ELEMENT: Form Submission with Automatic Passkey Hashing
         document.getElementById('join-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const plainPasskey = document.getElementById('passkey').value;
+            const secureHash = await hashPasskey(plainPasskey);
+
             const payload = {
                 name: document.getElementById('name').value,
                 skill: document.getElementById('skill').value,
                 github_username: document.getElementById('github').value,
-                passkey: document.getElementById('passkey').value
+                passkey: secureHash 
             };
+
             const response = await fetch(`${BASE_URL}/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
-                alert("SUCCESS: Added to mainframe. Welcome to the club!");
+                alert("SUCCESS: Added hashed credential data to mainframe.");
                 updateData();
                 e.target.reset();
             }
         });
 
+        // EXPERT ELEMENT: Profile Erasure with Hashed Credential Matching
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
             if (!key) return;
+            
+            const secureDeleteHash = await hashPasskey(key);
             try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
+                const response = await fetch(`${BASE_URL}/delete/${name}/${secureDeleteHash}`, { method: 'DELETE' });
                 if (response.ok) {
-                    alert("SUCCESS: Profile deleted.");
+                    alert("SUCCESS: Profile destroyed.");
                     updateData();
                 } else {
                     const result = await response.json();
                     alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
                 }
             } catch (err) {
-                alert("CRITICAL ERROR");
+                alert("CRITICAL CONNECTION ERROR");
             }
         }
 
-        // Search directory filtration
         function filterHackers() {
             const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
             const cards = document.querySelectorAll('.profile-card');
@@ -218,12 +287,9 @@
 
         setInterval(draw, 33);
         
-        // SEQUENTIAL BOOT SEQUENCE ENGINE:
-        // Step 1: Animate the primary terminal title header
+        // SEQUENTIAL BOOT SEQUENCE ENGINE
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
-            // Step 2: Once completed, animate the status label characters
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                // Step 3: Run the initial API fetch and schedule the 30-second loop
                 updateData();
                 setInterval(updateData, 30000);
             });
