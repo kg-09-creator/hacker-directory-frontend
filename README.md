@@ -12,7 +12,7 @@ Hi, this is a member management system featuring a retro-future terminal interfa
 - **Frontend:** HTML5, CSS3 (Matrix Rain Canvas), Vanilla JavaScript (Hosted on GitHub Pages)
 - **Time Tracking:** Logged via Hackatime
 
-Features
+## Features
 - **Secure Delete Protocol:** Profiles are protected by a `SECRET_PASSKEY`. Only the creator or the admin can delete their entry, but only the creator can see their passkey.
 - **Administrative Master Key:** A secure master key allowing the admin to delete test or spam accounts when needed.
 - **Real-Time Dashboards:** 
