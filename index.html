@@ -81,7 +81,7 @@
             });
 
             if (response.ok) {
-                alert("SUCCESS: Added to mainframe.");
+                alert("SUCCESS: Added to mainframe. Welcome to the club!");
                 updateData(); 
                 e.target.reset();
             } else {
@@ -99,7 +99,7 @@
         });
 
         if (response.ok) {
-            alert("SUCCESS: Profile purged.");
+            alert("SUCCESS: Profile deleted.");
             updateData(); 
         } else {
             const result = await response.json();
