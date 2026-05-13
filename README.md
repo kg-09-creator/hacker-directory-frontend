@@ -19,3 +19,4 @@ Features
     - `MEMBERS_SYNCED`: A live counter of active hacker connections.
 - **Matrix Rain UI:** CSS/Canvas animation replicating Matrix Rain.
 - **RESTful Architecture:** 5 GET endpoints and secure POST/DELETE handling.
+- **Administrative Master Key:** A secure master key allowing the admin to delete test or spam accounts when needed.
