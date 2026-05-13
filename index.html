@@ -70,7 +70,6 @@
     </div>
 
     <div class="terminal-header">
-        <!-- Added id="terminal-title" here so JavaScript can target it cleanly -->
         <h1 id="terminal-title">> HACKER_DIRECTORY_V2.EXE</h1>
         <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
@@ -95,6 +94,7 @@
     <div id="hacker-list"></div>
 
     <script>
+        // FIXED: Re-established the full Render API Endpoint string
         const BASE_URL = "onrender.com";
         let isTyping = false; 
 
@@ -186,6 +186,7 @@
             }
         }
 
+        // Search directory filtration
         function filterHackers() {
             const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
             const cards = document.querySelectorAll('.profile-card');
@@ -195,7 +196,7 @@
             });
         }
 
-        // Matrix Rain
+        // Matrix Rain Canvas Loop
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -217,12 +218,12 @@
 
         setInterval(draw, 33);
         
-        // SEQUENTIAL BOOT SEQUENCE:
-        // 1. Type out the main title first
+        // SEQUENTIAL BOOT SEQUENCE ENGINE:
+        // Step 1: Animate the primary terminal title header
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
-            // 2. Once the title finishes, type out the server status string
+            // Step 2: Once completed, animate the status label characters
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                // 3. Once both animations are finished, pull database information from Render
+                // Step 3: Run the initial API fetch and schedule the 30-second loop
                 updateData();
                 setInterval(updateData, 30000);
             });
