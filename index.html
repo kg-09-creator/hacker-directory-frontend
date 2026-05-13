@@ -50,32 +50,13 @@
     <script>
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
 
-function typeWriter(text, elementId, speed) {
+            function typeWriter(text, elementId, speed) {
     let i = 0;
     const element = document.getElementById(elementId);
-    if (!element) return;
-
-    let targetNode = null;
-    for (let node of element.childNodes) {
-        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.includes("ONLINE")) {
-            targetNode = node;
-            break;
-        }
-    }
-
-    if (!targetNode && element.childNodes.length >= 2) {
-        targetNode = element.childNodes[1]; 
-    }
-
-    if (targetNode) {
-        targetNode.nodeValue = ""; 
-    }
-
+    element.innerHTML = "";
     function type() {
         if (i < text.length) {
-            if (targetNode) {
-                targetNode.nodeValue += text.charAt(i);
-            }
+            element.innerHTML += text.charAt(i);
             i++;
             setTimeout(type, speed);
         }
@@ -83,8 +64,7 @@ function typeWriter(text, elementId, speed) {
     type();
 }
 
-typeWriter(" ESTABLISHING_SECURE_CONNECTION...", "server-status", 50);
-
+typeWriter("> ESTABLISHING_SECURE_CONNECTION...", "server-status", 50);
 
         async function updateData() {
             try {
@@ -175,12 +155,7 @@ typeWriter(" ESTABLISHING_SECURE_CONNECTION...", "server-status", 50);
         setInterval(draw, 33);
         setInterval(updateData, 30000);
         updateData();
-
-#server-status {
-    font-family: 'Courier New', Courier, monospace; 
-    white-space: pre;                               
-}
-
+    
     </script>
 </body>
 </html>
