@@ -13,10 +13,11 @@ Hi, this is a member management system featuring a retro-future terminal interfa
 - **Time Tracking:** Logged via Hackatime
 
 Features
-- **Secure Delete Protocol:** Profiles are protected by a `SECRET_PASSKEY`. Only the creator can delete their entry.
+- **Secure Delete Protocol:** Profiles are protected by a `SECRET_PASSKEY`. Only the creator or the admin can delete their entry, but only the creator can see their passkey.
+- **Administrative Master Key:** A secure master key allowing the admin to delete test or spam accounts when needed.
 - **Real-Time Dashboards:** 
     - `SYSTEM_VIBE`: An endpoint that analyzes the directory's status.
     - `MEMBERS_SYNCED`: A live counter of active hacker connections.
 - **Matrix Rain UI:** CSS/Canvas animation replicating Matrix Rain.
-- **RESTful Architecture:** 5 GET endpoints and secure POST/DELETE handling.
-- **Administrative Master Key:** A secure master key allowing the admin to delete test or spam accounts when needed.
+- **API:** 5 GET endpoints and secure POST/DELETE handling.
+- **Error Handling** Frontend checks for `response.ok` and gives different alerts for connection errors vs. wrong passwords.
