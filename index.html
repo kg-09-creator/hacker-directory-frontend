@@ -39,7 +39,6 @@
 
         async function updateData() {
             try {
-                // 1. Fetch Profiles
                 const res = await fetch(`${BASE_URL}/profiles`);
                 const data = await res.json();
                 const list = document.getElementById("hacker-list");
@@ -50,13 +49,11 @@
                     card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
                     list.appendChild(card);
                 });
-
-                // 2. Update Stats
+                
                 const sRes = await fetch(`${BASE_URL}/stats`);
                 const sData = await sRes.json();
                 document.getElementById("member-count").innerText = sData.total_hackers;
 
-                // 3. Update Vibe
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
                 document.getElementById("vibe-text").innerText = vData.vibe;
@@ -85,7 +82,7 @@
 
             if (response.ok) {
                 alert("SUCCESS: Added to mainframe.");
-                updateData(); // Refresh everything
+                updateData(); 
                 e.target.reset();
             } else {
                 alert("ERROR: Failed to join.");
@@ -101,23 +98,19 @@
             method: 'DELETE' 
         });
 
-        // CRITICAL FIX: Check if the response was actually successful
         if (response.ok) {
             alert("SUCCESS: Profile purged.");
-            updateData(); // Refresh the list
+            updateData(); 
         } else {
-            // If the server sent an error (like 403 or 404)
             const result = await response.json();
             alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
         }
     } catch (err) {
-        // This only runs if the network is down or the server is unreachable
         alert("CRITICAL ERROR: Connection to mainframe lost.");
     }
 }
 
 
-        // Matrix Rain Logic
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
@@ -134,7 +127,6 @@
         }
         setInterval(draw, 33);
         
-        // Auto-refresh every 30 seconds
         setInterval(updateData, 30000);
         updateData();
     </script>
