@@ -116,196 +116,206 @@
     <div id="hacker-list"></div>
 
     <script>
-        const BASE_URL = "https://kgs-guestbook-api.onrender.com";
-        let isTyping = false; 
-        let globalAudioCtx = null; 
+    const BASE_URL = "onrender.com";
+    let isTyping = false; 
 
-        function playTerminalClick() {
-            try {
-                if (!globalAudioCtx) {
-                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (globalAudioCtx.state === 'suspended') {
-                    return; 
-                }
-                const oscillator = globalAudioCtx.createOscillator();
-                const gainNode = globalAudioCtx.createGain();
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(850, globalAudioCtx.currentTime); 
-                gainNode.gain.setValueAtTime(0.1, globalAudioCtx.currentTime); 
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(globalAudioCtx.destination);
-                
-                oscillator.start();
-                oscillator.stop(globalAudioCtx.currentTime + 0.03); 
-            } catch (e) {}
-        }
+    // Define a single global audio context state variable
+    let globalAudioCtx = null;
 
-        function unlockAudio() {
+    // Helper function to create or wake up the audio context engine safely
+    function playTerminalClick() {
+        try {
+            // Initialize the audio architecture context only if it doesn't exist yet
             if (!globalAudioCtx) {
                 globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
+            
+            // If the browser suspended it, do not attempt to play audio
             if (globalAudioCtx.state === 'suspended') {
-                globalAudioCtx.resume().then(() => {
-                    playTerminalClick();
-                });
-            } else {
-                playTerminalClick();
+                return; 
             }
+
+            const oscillator = globalAudioCtx.createOscillator();
+            const gainNode = globalAudioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(950, globalAudioCtx.currentTime); 
+            gainNode.gain.setValueAtTime(0.015, globalAudioCtx.currentTime); 
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(globalAudioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(globalAudioCtx.currentTime + 0.02); 
+        } catch (e) {
+            // Fails silently if sound systems are completely blocked
         }
+    }
 
-        window.addEventListener('click', unlockAudio);
-        window.addEventListener('keydown', unlockAudio);
-
-        async function hashPasskey(password) {
-            const msgBuffer = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // NEW SECURITY RULE BYPASS: Wakes up the sound engine on the first user interaction
+    function unlockAudio() {
+        if (!globalAudioCtx) {
+            globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-
-        function typeWriter(text, elementId, speed, callback) {
-            let i = 0;
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            element.innerHTML = ""; 
-
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    playTerminalClick(); 
-                    i++;
-                    setTimeout(type, speed);
-                } else {
-                    if (callback) callback(); 
-                }
-            }
-            type();
+        if (globalAudioCtx.state === 'suspended') {
+            globalAudioCtx.resume(); // Force the browser to unmute the page
         }
+        // Remove the listeners immediately so this only triggers once per visit
+        window.removeEventListener('click', unlockAudio);
+        window.removeEventListener('keydown', unlockAudio);
+    }
 
-        async function updateData() {
-            try {
-                const res = await fetch(`${BASE_URL}/profiles`);
-                const data = await res.json();
-                const list = document.getElementById("hacker-list");
-                list.innerHTML = "";
-                data.forEach(h => {
-                    const card = document.createElement("div");
-                    card.className = "profile-card";
-                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
-                    list.appendChild(card);
-                });
+    // Attach interaction listeners to look for the first touch event
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
 
-                const sRes = await fetch(`${BASE_URL}/stats`);
-                const sData = await sRes.json();
-                document.getElementById("member-count").innerText = sData.total_hackers;
+    async function hashPasskey(password) {
+        const msgBuffer = new TextEncoder().encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
-                const vRes = await fetch(`${BASE_URL}/vibe`);
-                const vData = await vRes.json();
-                
-                // Triggers the vibe typing animation safely after the page finishes initial load
-                setTimeout(() => {
-                    const vibeElement = document.getElementById("vibe-text");
-                    if(vibeElement) vibeElement.classList.add("typing");
-                    typeWriter(vData.vibe, "vibe-text", 80, function() {
-                        if(vibeElement) vibeElement.classList.remove("typing");
-                    });
-                }, 1500);
-
-                if (!isTyping) {
-                    document.getElementById("server-status").innerText = "ONLINE";
-                }
-            } catch (e) {
-                if (!isTyping) {
-                    document.getElementById("server-status").innerText = "OFFLINE";
-                }
-            }
-        }
-
-        if (document.getElementById('join-form')) {
-            document.getElementById('join-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                playTerminalClick();
-                const plainPasskey = document.getElementById('passkey').value;
-                const secureHash = await hashPasskey(plainPasskey);
-                const payload = {
-                    name: document.getElementById('name').value,
-                    skill: document.getElementById('skill').value,
-                    github_username: document.getElementById('github').value,
-                    passkey: secureHash
-                };
-                const response = await fetch(`${BASE_URL}/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (response.ok) {
-                    alert("SUCCESS: Added hashed credential data to mainframe.");
-                    updateData();
-                    e.target.reset();
-                }
-            });
-        }
-
-        async function deleteUser(name) {
-            const key = prompt(`Enter passkey for ${name}:`);
-            if (!key) return;
-            const secureDeleteHash = await hashPasskey(key);
-            try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${secureDeleteHash}`, { method: 'DELETE' });
-                if (response.ok) {
-                    alert("SUCCESS: Profile destroyed.");
-                    updateData();
-                } else {
-                    const result = await response.json();
-                    alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
-                }
-            } catch (err) {
-                alert("CRITICAL CONNECTION ERROR");
-            }
-        }
-
-        function filterHackers() {
-            const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
-            const cards = document.querySelectorAll('.profile-card');
-            cards.forEach(card => {
-                const nameText = card.querySelector('h3').innerText.toLowerCase();
-                card.style.display = nameText.includes(searchTerm) ? "block" : "none";
-            });
-        }
-
-        const canvas = document.getElementById('matrix-rain');
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            const chars = "0123456789ABCDEF";
-            const drops = Array(Math.floor(canvas.width/16)).fill(1);
-            function draw() {
-                ctx.fillStyle = "rgba(13,2,8,0.1)";
-                ctx.fillRect(0,0,canvas.width,canvas.height);
-                ctx.fillStyle = "#00ff41";
-                ctx.font = "16px monospace";
-                drops.forEach((y, i) => {
-                    ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
-                    if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                    drops[i]++;
-                });
-            }
-            setInterval(draw, 33);
-        }
-
-        // Sequential page loading engine sequence
+    function typeWriter(text, elementId, speed, callback) {
         isTyping = true;
-        typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
-            typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                isTyping = false;
-                updateData();
-                setInterval(updateData, 30000);
+        let i = 0;
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        element.classList.add("typing");
+        element.innerHTML = ""; 
+
+        function type() {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                playTerminalClick(); 
+                i++;
+                setTimeout(type, speed);
+            } else {
+                isTyping = false; 
+                element.classList.remove("typing");
+                if (callback) callback(); 
+            }
+        }
+        type();
+    }
+
+    async function updateData() {
+        try {
+            const res = await fetch(`${BASE_URL}/profiles`);
+            const data = await res.json();
+            const list = document.getElementById("hacker-list");
+            list.innerHTML = "";
+            data.forEach(h => {
+                const card = document.createElement("div");
+                card.className = "profile-card";
+                card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
+                list.appendChild(card);
             });
+
+            const sRes = await fetch(`${BASE_URL}/stats`);
+            const sData = await sRes.json();
+            document.getElementById("member-count").innerText = sData.total_hackers;
+
+            const vRes = await fetch(`${BASE_URL}/vibe`);
+            const vData = await vRes.json();
+            
+            document.getElementById("vibe-text").classList.add("typing");
+            typeWriter(vData.vibe, "vibe-text", 80, function() {
+                document.getElementById("vibe-text").classList.remove("typing");
+            });
+
+            if (!isTyping) {
+                document.getElementById("server-status").innerText = "ONLINE";
+            }
+        } catch (e) {
+            if (!isTyping) {
+                document.getElementById("server-status").innerText = "OFFLINE";
+            }
+        }
+    }
+
+    document.getElementById('join-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        playTerminalClick(); 
+        
+        const plainPasskey = document.getElementById('passkey').value;
+        const secureHash = await hashPasskey(plainPasskey);
+
+        const payload = {
+            name: document.getElementById('name').value,
+            skill: document.getElementById('skill').value,
+            github_username: document.getElementById('github').value,
+            passkey: secureHash 
+        };
+
+        const response = await fetch(`${BASE_URL}/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-    </script>
+        if (response.ok) {
+            alert("SUCCESS: Added hashed credential data to mainframe.");
+            updateData();
+            e.target.reset();
+        }
+    });
+
+    async function deleteUser(name) {
+        const key = prompt(`Enter passkey for ${name}:`);
+        if (!key) return;
+        
+        const secureDeleteHash = await hashPasskey(key);
+        try {
+            const response = await fetch(`${BASE_URL}/delete/${name}/${secureDeleteHash}`, { method: 'DELETE' });
+            if (response.ok) {
+                alert("SUCCESS: Profile destroyed.");
+                updateData();
+            } else {
+                const result = await response.json();
+                alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
+            }
+        } catch (err) {
+            alert("CRITICAL CONNECTION ERROR");
+        }
+    }
+
+    function filterHackers() {
+        const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
+        const cards = document.querySelectorAll('.profile-card');
+        cards.forEach(card => {
+            const nameText = card.querySelector('h3').innerText.toLowerCase();
+            card.style.display = nameText.includes(searchTerm) ? "block" : "none";
+        });
+    }
+
+    const canvas = document.getElementById('matrix-rain');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const chars = "0123456789ABCDEF";
+    const drops = Array(Math.floor(canvas.width/16)).fill(1);
+
+    function draw() {
+        ctx.fillStyle = "rgba(13,2,8,0.1)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "#00ff41";
+        ctx.font = "16px monospace";
+        drops.forEach((y, i) => {
+            ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
+            if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        });
+    }
+
+    setInterval(draw, 33);
+    
+    typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
+        typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
+            updateData();
+            setInterval(updateData, 30000);
+        });
+    });
+</script>
 </body>
 </html>
