@@ -31,7 +31,6 @@
             padding: 20px;
             margin-bottom: 20px;
         }
-        /* EXPERT ELEMENT: CRT Scanline and Green Glow Effect */
         .profile-card {
             background-color: rgba(13, 2, 8, 0.85);
             border: 1px solid #00ff41;
@@ -75,8 +74,6 @@
             border-color: #ff0000 !important;
             font-size: 0.8em;
         }
-
-        /* EXPERT ELEMENT: Blinking Block Terminal Cursor */
         .typing::after {
             content: "█";
             animation: blink 0.8s infinite steps(2);
@@ -102,17 +99,18 @@
     <div class="terminal-header">
         <h2>> SEARCH_DATABASE.exe</h2>
         <span style="color: #00ff41;">> </span>
-        <input type=<input type="text" id="terminal-search" placeholder="TYPE_NAME..." oninput="filterHackers(); playTerminalClick();">
-
+        <!-- Added playTerminalClick() to oninput below -->
+        <input type="text" id="terminal-search" placeholder="TYPE_NAME..." oninput="filterHackers(); playTerminalClick();">
     </div>
 
     <div class="terminal-header">
         <h2>> JOIN_THE_MAINFRAME.exe</h2>
         <form id="join-form">
-            <input type="text" id="name" placeholder="NAME" required>
-            <input type="text" id="skill" placeholder="SKILL" required>
-            <input type="text" id="github" placeholder="GITHUB_USER" required>
-            <input type="password" id="passkey" placeholder="SECRET_PASSKEY" required>
+            <!-- Added playTerminalClick() on keydown for all registration fields below -->
+            <input type="text" id="name" placeholder="NAME" required onkeydown="playTerminalClick()">
+            <input type="text" id="skill" placeholder="SKILL" required onkeydown="playTerminalClick()">
+            <input type="text" id="github" placeholder="GITHUB_USER" required onkeydown="playTerminalClick()">
+            <input type="password" id="passkey" placeholder="SECRET_PASSKEY" required onkeydown="playTerminalClick()">
             <button type="submit">_SUBMIT_DATA</button>
         </form>
     </div>
@@ -123,7 +121,6 @@
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
         let isTyping = false; 
 
-        // EXPERT ELEMENT: Web Audio Synthesizer for Terminal Keystrokes
         function playTerminalClick() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -140,11 +137,10 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.02); 
             } catch (e) {
-                // Browsers safely block audio until the user clicks or submits something
+                // Fails silently if browser blocks audio
             }
         }
 
-        // EXPERT ELEMENT: Cryptographic SHA-256 Hashing for Passkeys
         async function hashPasskey(password) {
             const msgBuffer = new TextEncoder().encode(password);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -164,7 +160,7 @@
             function type() {
                 if (i < text.length) {
                     element.innerHTML += text.charAt(i);
-                    playTerminalClick(); // Play synth sound per character
+                    playTerminalClick(); 
                     i++;
                     setTimeout(type, speed);
                 } else {
@@ -211,9 +207,9 @@
             }
         }
 
-        // EXPERT ELEMENT: Form Submission with Automatic Passkey Hashing
         document.getElementById('join-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            playTerminalClick(); // Play sound when submit button is pressed
             
             const plainPasskey = document.getElementById('passkey').value;
             const secureHash = await hashPasskey(plainPasskey);
@@ -237,7 +233,6 @@
             }
         });
 
-        // EXPERT ELEMENT: Profile Erasure with Hashed Credential Matching
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
             if (!key) return;
@@ -266,7 +261,6 @@
             });
         }
 
-        // Matrix Rain Canvas Loop
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -288,7 +282,6 @@
 
         setInterval(draw, 33);
         
-        // SEQUENTIAL BOOT SEQUENCE ENGINE
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
                 updateData();
