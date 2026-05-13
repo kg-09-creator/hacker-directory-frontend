@@ -75,11 +75,13 @@
             font-size: 0.8em;
         }
         
-        /* The Blinking Cursor Style */
-        .typing::after {
+        /* FIXED CSS BLINKING ENGINE: Appends a cursor whenever typing is true */
+        .typing-active::after {
             content: "█";
             animation: blink 0.8s infinite steps(2);
             margin-left: 4px;
+            display: inline-block;
+            vertical-align: bottom;
         }
         @keyframes blink {
             0%, 100% { opacity: 1; }
@@ -119,7 +121,7 @@
 
     <script>
         const BASE_URL = "onrender.com";
-        let isTyping = false; 
+        let bootSequenceRunning = true; 
         let globalAudioCtx = null; 
 
         function playTerminalClick() {
@@ -168,13 +170,13 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
+        // FIXED ENGINE LOOP: Correctly binds and manages the visibility class name parameters
         function typeWriter(text, elementId, speed, callback) {
             let i = 0;
             const element = document.getElementById(elementId);
             if (!element) return;
             
-            // FIXED: Add the flashing block style tag instantly before typing begins
-            element.classList.add("typing");
+            element.classList.add("typing-active");
             element.innerHTML = ""; 
 
             function type() {
@@ -184,8 +186,7 @@
                     i++;
                     setTimeout(type, speed);
                 } else {
-                    // Remove the cursor style block ONLY when the whole text finishes printing
-                    element.classList.remove("typing");
+                    element.classList.remove("typing-active");
                     if (callback) callback(); 
                 }
             }
@@ -212,16 +213,14 @@
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
                 
-                // Triggers the vibe typing animation safely after the page finishes initial load
-                setTimeout(() => {
-                    typeWriter(vData.vibe, "vibe-text", 80);
-                }, 1500);
+                // Plays vibe animation seamlessly
+                typeWriter(vData.vibe, "vibe-text", 80);
 
-                if (!isTyping) {
+                if (!bootSequenceRunning) {
                     document.getElementById("server-status").innerText = "ONLINE";
                 }
             } catch (e) {
-                if (!isTyping) {
+                if (!bootSequenceRunning) {
                     document.getElementById("server-status").innerText = "OFFLINE";
                 }
             }
@@ -300,11 +299,10 @@
             setInterval(draw, 33);
         }
 
-        // Sequential page loading engine sequence
-        isTyping = true;
+        // Sequential page loading execution order pipeline
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                isTyping = false;
+                bootSequenceRunning = false;
                 updateData();
                 setInterval(updateData, 30000);
             });
