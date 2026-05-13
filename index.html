@@ -11,6 +11,7 @@
             width: 100%;
             height: 100%;
         }
+
         body {
             background-color: #0d0208;
             color: #00ff41;
@@ -18,6 +19,7 @@
             padding: 20px;
             margin: 0;
         }
+
         .status-bar {
             text-align: right;
             font-size: 0.8em;
@@ -25,18 +27,21 @@
             background: rgba(0,0,0,0.5);
             padding: 5px;
         }
+
         .terminal-header {
             background-color: rgba(13, 2, 8, 0.9);
             border: 1px solid #00ff41;
             padding: 20px;
             margin-bottom: 20px;
         }
+
         .profile-card {
             background-color: rgba(13, 2, 8, 0.85);
             border: 1px solid #00ff41;
             margin: 15px 0;
             padding: 15px;
         }
+
         input, button {
             background-color: #0d0208;
             color: #00ff41;
@@ -45,55 +50,44 @@
             margin: 5px;
             font-family: 'Courier New', monospace;
         }
+
         #terminal-search {
             width: 95%;
             display: block;
             margin-top: 10px;
             border-style: dashed;
         }
+
         button:hover {
             background-color: #00ff41;
             color: #0d0208;
             cursor: pointer;
         }
+
         .delete-btn {
             color: #ff0000 !important;
             border-color: #ff0000 !important;
             font-size: 0.8em;
         }
-       .typewriter-cursor {
-    display: inline-block;
-    width: 0.65ch;
-    height: 1em;
-    margin-left: 2px;
-    background-color: #00ff41;
-    vertical-align: -0.12em;
-    animation: blink-cursor 0.8s steps(1) infinite;
-}
 
-        .typewriter-cursor {
-    display: inline-block;
-    color: #00ff41;
-    animation: blink-cursor 0.8s steps(1) infinite;
-}
+        .typewriter-active::after {
+            content: "█";
+            display: inline-block;
+            margin-left: 3px;
+            color: #00ff41;
+            animation: blink-cursor 0.8s steps(1) infinite;
+        }
 
-@keyframes blink-cursor {
-    50% {
-        opacity: 0;
-    }
-}
-
-
-@keyframes blink-cursor {
-    50% {
-        opacity: 0;
-    }
-}
-
+        @keyframes blink-cursor {
+            50% {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
     <canvas id="matrix-rain"></canvas>
+
     <div class="status-bar">
         STATUS: <span id="server-status">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
     </div>
@@ -123,49 +117,50 @@
     <div id="hacker-list"></div>
 
     <script>
-        // FIXED: Re-established the full Render API Endpoint string
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
-        let isTyping = false; 
+        let isTyping = false;
 
-       function typeWriter(text, elementId, speed, callback) {
-    isTyping = true;
-    let i = 0;
+        function typeWriter(text, elementId, speed, callback) {
+            isTyping = true;
+            let i = 0;
 
-    const element = document.getElementById(elementId);
-    if (!element) return;
+            const element = document.getElementById(elementId);
+            if (!element) return;
 
-    element.textContent = "";
+            element.textContent = "";
+            element.classList.add("typewriter-active");
 
-    const cursor = document.createElement("span");
-    cursor.className = "typewriter-cursor";
-    cursor.textContent = "█";
+            function type() {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                } else {
+                    isTyping = false;
 
-    function type() {
-        element.textContent = text.substring(0, i);
-        element.appendChild(cursor);
+                    if (callback) callback();
+                }
+            }
 
-        if (i < text.length) {
-            i++;
-            setTimeout(type, speed);
-        } else {
-            isTyping = false;
-
-            if (callback) callback();
+            type();
         }
-    }
 
-    type();
-}
         async function updateData() {
             try {
                 const res = await fetch(`${BASE_URL}/profiles`);
                 const data = await res.json();
+
                 const list = document.getElementById("hacker-list");
                 list.innerHTML = "";
+
                 data.forEach(h => {
                     const card = document.createElement("div");
                     card.className = "profile-card";
-                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
+                    card.innerHTML = `
+                        <h3>> USER: ${h.name}</h3>
+                        <p>SKILL: ${h.skill}</p>
+                        <button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>
+                    `;
                     list.appendChild(card);
                 });
 
@@ -187,19 +182,22 @@
             }
         }
 
-        document.getElementById('join-form').addEventListener('submit', async (e) => {
+        document.getElementById("join-form").addEventListener("submit", async (e) => {
             e.preventDefault();
+
             const payload = {
-                name: document.getElementById('name').value,
-                skill: document.getElementById('skill').value,
-                github_username: document.getElementById('github').value,
-                passkey: document.getElementById('passkey').value
+                name: document.getElementById("name").value,
+                skill: document.getElementById("skill").value,
+                github_username: document.getElementById("github").value,
+                passkey: document.getElementById("passkey").value
             };
+
             const response = await fetch(`${BASE_URL}/join`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
+
             if (response.ok) {
                 alert("SUCCESS: Added to mainframe. Welcome to the club!");
                 updateData();
@@ -210,8 +208,12 @@
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
             if (!key) return;
+
             try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
+                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, {
+                    method: "DELETE"
+                });
+
                 if (response.ok) {
                     alert("SUCCESS: Profile deleted.");
                     updateData();
@@ -224,50 +226,51 @@
             }
         }
 
-        // Search directory filtration
         function filterHackers() {
-            const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
-            const cards = document.querySelectorAll('.profile-card');
+            const searchTerm = document.getElementById("terminal-search").value.toLowerCase();
+            const cards = document.querySelectorAll(".profile-card");
+
             cards.forEach(card => {
-                const nameText = card.querySelector('h3').innerText.toLowerCase();
+                const nameText = card.querySelector("h3").innerText.toLowerCase();
                 card.style.display = nameText.includes(searchTerm) ? "block" : "none";
             });
         }
 
-        // Matrix Rain Canvas Loop
-        const canvas = document.getElementById('matrix-rain');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.getElementById("matrix-rain");
+        const ctx = canvas.getContext("2d");
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+
         const chars = "0123456789ABCDEF";
-        const drops = Array(Math.floor(canvas.width/16)).fill(1);
+        const drops = Array(Math.floor(canvas.width / 16)).fill(1);
 
         function draw() {
             ctx.fillStyle = "rgba(13,2,8,0.1)";
-            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             ctx.fillStyle = "#00ff41";
             ctx.font = "16px monospace";
+
             drops.forEach((y, i) => {
-                ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
-                if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * 16, y * 16);
+
+                if (y * 16 > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
                 drops[i]++;
             });
         }
 
         setInterval(draw, 33);
-        
-        // SEQUENTIAL BOOT SEQUENCE ENGINE:
-        // Step 1: Animate the primary terminal title header
+
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
-            // Step 2: Once completed, animate the status label characters
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                // Step 3: Run the initial API fetch and schedule the 30-second loop
                 updateData();
                 setInterval(updateData, 30000);
             });
         });
-
-        
     </script>
 </body>
 </html>
