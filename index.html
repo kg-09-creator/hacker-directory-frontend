@@ -70,7 +70,8 @@
     </div>
 
     <div class="terminal-header">
-        <h1>> HACKER_DIRECTORY_V2.EXE</h1>
+        <!-- Added id="terminal-title" here so JavaScript can target it cleanly -->
+        <h1 id="terminal-title">> HACKER_DIRECTORY_V2.EXE</h1>
         <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
 
@@ -94,7 +95,7 @@
     <div id="hacker-list"></div>
 
     <script>
-        const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+        const BASE_URL = "onrender.com";
         let isTyping = false; 
 
         function typeWriter(text, elementId, speed, callback) {
@@ -111,7 +112,7 @@
                     setTimeout(type, speed);
                 } else {
                     isTyping = false; 
-                    if (callback) callback(); // Run updateData ONLY after typing finishes completely
+                    if (callback) callback(); 
                 }
             }
             type();
@@ -216,12 +217,15 @@
 
         setInterval(draw, 33);
         
-        // INITIALIZATION SEQUENCE:
-        // Run the typewriter first. When it finishes, it executes updateData as its callback.
-        typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 50, function() {
-            updateData();
-            // Start the 30-second interval tracking loop ONLY after the first boot sequence finishes
-            setInterval(updateData, 30000);
+        // SEQUENTIAL BOOT SEQUENCE:
+        // 1. Type out the main title first
+        typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
+            // 2. Once the title finishes, type out the server status string
+            typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
+                // 3. Once both animations are finished, pull database information from Render
+                updateData();
+                setInterval(updateData, 30000);
+            });
         });
     </script>
 </body>
