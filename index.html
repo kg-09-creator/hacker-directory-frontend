@@ -75,13 +75,11 @@
             font-size: 0.8em;
         }
         
-        /* FIXED CSS BLINKING ENGINE: Appends a cursor whenever typing is true */
-        .typing-active::after {
+        /* SOLID BLINKING CURSOR: Attaches a solid terminal block when typing is active */
+        .typing::after {
             content: "█";
             animation: blink 0.8s infinite steps(2);
             margin-left: 4px;
-            display: inline-block;
-            vertical-align: bottom;
         }
         @keyframes blink {
             0%, 100% { opacity: 1; }
@@ -103,16 +101,16 @@
     <div class="terminal-header">
         <h2>> SEARCH_DATABASE.exe</h2>
         <span style="color: #00ff41;">> </span>
-        <input type="text" id="terminal-search" placeholder="TYPE_NAME..." oninput="filterHackers(); playTerminalClick();">
+        <input type="text" id="terminal-search" placeholder="TYPE_NAME..." oninput="filterHackers()">
     </div>
 
     <div class="terminal-header">
         <h2>> JOIN_THE_MAINFRAME.exe</h2>
         <form id="join-form">
-            <input type="text" id="name" placeholder="NAME" required onkeydown="playTerminalClick()">
-            <input type="text" id="skill" placeholder="SKILL" required onkeydown="playTerminalClick()">
-            <input type="text" id="github" placeholder="GITHUB_USER" required onkeydown="playTerminalClick()">
-            <input type="password" id="passkey" placeholder="SECRET_PASSKEY" required onkeydown="playTerminalClick()">
+            <input type="text" id="name" placeholder="NAME" required>
+            <input type="text" id="skill" placeholder="SKILL" required>
+            <input type="text" id="github" placeholder="GITHUB_USER" required>
+            <input type="password" id="passkey" placeholder="SECRET_PASSKEY" required>
             <button type="submit">_SUBMIT_DATA</button>
         </form>
     </div>
@@ -120,49 +118,11 @@
     <div id="hacker-list"></div>
 
     <script>
+        // FIXED URL ADDRESS PATHWAY LINK
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
-        let bootSequenceRunning = true; 
-        let globalAudioCtx = null; 
+        let isBooting = true; // Prevents background sync clashes during startup
 
-        function playTerminalClick() {
-            try {
-                if (!globalAudioCtx) {
-                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (globalAudioCtx.state === 'suspended') {
-                    return; 
-                }
-                const oscillator = globalAudioCtx.createOscillator();
-                const gainNode = globalAudioCtx.createGain();
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(850, globalAudioCtx.currentTime); 
-                gainNode.gain.setValueAtTime(0.1, globalAudioCtx.currentTime); 
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(globalAudioCtx.destination);
-                
-                oscillator.start();
-                oscillator.stop(globalAudioCtx.currentTime + 0.03); 
-            } catch (e) {}
-        }
-
-        function unlockAudio() {
-            if (!globalAudioCtx) {
-                globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (globalAudioCtx.state === 'suspended') {
-                globalAudioCtx.resume().then(() => {
-                    playTerminalClick();
-                });
-            } else {
-                playTerminalClick();
-            }
-        }
-
-        window.addEventListener('click', unlockAudio);
-        window.addEventListener('keydown', unlockAudio);
-
+        // SHA-256 Hashing Pipeline
         async function hashPasskey(password) {
             const msgBuffer = new TextEncoder().encode(password);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -170,23 +130,22 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // FIXED ENGINE LOOP: Correctly binds and manages the visibility class name parameters
+        // Clean, Robust Typewriter Engine
         function typeWriter(text, elementId, speed, callback) {
             let i = 0;
             const element = document.getElementById(elementId);
             if (!element) return;
             
-            element.classList.add("typing-active");
+            element.classList.add("typing");
             element.innerHTML = ""; 
 
             function type() {
                 if (i < text.length) {
                     element.innerHTML += text.charAt(i);
-                    playTerminalClick(); 
                     i++;
                     setTimeout(type, speed);
                 } else {
-                    element.classList.remove("typing-active");
+                    element.classList.remove("typing");
                     if (callback) callback(); 
                 }
             }
@@ -213,43 +172,43 @@
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
                 
-                // Plays vibe animation seamlessly
+                // Animates the live server vibe character text smoothly
                 typeWriter(vData.vibe, "vibe-text", 80);
 
-                if (!bootSequenceRunning) {
+                if (!isBooting) {
                     document.getElementById("server-status").innerText = "ONLINE";
                 }
             } catch (e) {
-                if (!bootSequenceRunning) {
+                if (!isBooting) {
                     document.getElementById("server-status").innerText = "OFFLINE";
                 }
             }
         }
 
-        if (document.getElementById('join-form')) {
-            document.getElementById('join-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                playTerminalClick();
-                const plainPasskey = document.getElementById('passkey').value;
-                const secureHash = await hashPasskey(plainPasskey);
-                const payload = {
-                    name: document.getElementById('name').value,
-                    skill: document.getElementById('skill').value,
-                    github_username: document.getElementById('github').value,
-                    passkey: secureHash
-                };
-                const response = await fetch(`${BASE_URL}/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (response.ok) {
-                    alert("SUCCESS: Added hashed credential data to mainframe.");
-                    updateData();
-                    e.target.reset();
-                }
+        document.getElementById('join-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const plainPasskey = document.getElementById('passkey').value;
+            const secureHash = await hashPasskey(plainPasskey);
+
+            const payload = {
+                name: document.getElementById('name').value,
+                skill: document.getElementById('skill').value,
+                github_username: document.getElementById('github').value,
+                passkey: secureHash 
+            };
+
+            const response = await fetch(`${BASE_URL}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
-        }
+            if (response.ok) {
+                alert("SUCCESS: Added profile data to mainframe.");
+                updateData();
+                e.target.reset();
+            }
+        });
 
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
@@ -278,6 +237,7 @@
             });
         }
 
+        // Matrix Rain Loop Setup
         const canvas = document.getElementById('matrix-rain');
         if (canvas) {
             const ctx = canvas.getContext('2d');
@@ -299,12 +259,12 @@
             setInterval(draw, 33);
         }
 
-        // Sequential page loading execution order pipeline
+        // CLEAN SEQUENTIAL STARTUP CHAIN:
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                bootSequenceRunning = false;
-                updateData();
-                setInterval(updateData, 30000);
+                isBooting = false; // Turn off startup block
+                updateData(); // Fire database connection smoothly
+                setInterval(updateData, 30000); // Check for data updates every 30 seconds
             });
         });
     </script>
