@@ -3,6 +3,23 @@
 <head>
     <title>Hacker Directory Terminal</title>
     <style>
+
+        .typewriter-cursor {
+    display: inline-block;
+    width: 0.65ch;
+    height: 1em;
+    margin-left: 2px;
+    background-color: #00ff41;
+    vertical-align: -0.12em;
+    animation: blink-cursor 0.8s steps(1) infinite;
+}
+
+@keyframes blink-cursor {
+    50% {
+        opacity: 0;
+    }
+}
+        
         #matrix-rain {
             position: fixed;
             top: 0;
@@ -116,13 +133,39 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        function typeWriter(text, elementId, speed, callback) {
-            let i = 0;
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            element.classList.add("typing");
-            element.innerHTML = ""; 
+function typeWriter(text, elementId, speed, callback) {
+    isTyping = true;
+    let i = 0;
+
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    element.innerHTML = "";
+
+    const textNode = document.createTextNode("");
+    const cursor = document.createElement("span");
+    cursor.className = "typewriter-cursor";
+
+    element.appendChild(textNode);
+    element.appendChild(cursor);
+
+    function type() {
+        if (i < text.length) {
+            textNode.textContent += text.charAt(i);
+            i++;
+            setTimeout(type, speed);
+        } else {
+            isTyping = false;
+
+            // Remove this line if you want the cursor to keep blinking after typing finishes
+            cursor.remove();
+
+            if (callback) callback();
+        }
+    }
+
+    type();
+}
 
             function type() {
                 if (i < text.length) {
