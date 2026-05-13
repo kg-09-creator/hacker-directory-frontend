@@ -3,23 +3,6 @@
 <head>
     <title>Hacker Directory Terminal</title>
     <style>
-
-        .typewriter-cursor {
-    display: inline-block;
-    width: 0.65ch;
-    height: 1em;
-    margin-left: 2px;
-    background-color: #00ff41;
-    vertical-align: -0.12em;
-    animation: blink-cursor 0.8s steps(1) infinite;
-}
-
-@keyframes blink-cursor {
-    50% {
-        opacity: 0;
-    }
-}
-        
         #matrix-rain {
             position: fixed;
             top: 0;
@@ -78,27 +61,31 @@
             border-color: #ff0000 !important;
             font-size: 0.8em;
         }
-        /* Structural cursor rule mapping */
-        .typing::after {
-            content: "█";
-            animation: blink 0.8s infinite steps(2);
-            margin-left: 4px;
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
+       .typewriter-cursor {
+    display: inline-block;
+    width: 0.65ch;
+    height: 1em;
+    margin-left: 2px;
+    background-color: #00ff41;
+    vertical-align: -0.12em;
+    animation: blink-cursor 0.8s steps(1) infinite;
+}
+
+@keyframes blink-cursor {
+    50% {
+        opacity: 0;
+    }
+}
+
     </style>
 </head>
 <body>
     <canvas id="matrix-rain"></canvas>
-    
     <div class="status-bar">
-        STATUS: <span id="server-status" class="typing">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
+        STATUS: <span id="server-status">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
     </div>
 
     <div class="terminal-header">
-        <!-- FIXED: Added explicit id marker attribute tags to prevent render crashes -->
         <h1 id="terminal-title">> HACKER_DIRECTORY_V2.EXE</h1>
         <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
@@ -123,49 +110,16 @@
     <div id="hacker-list"></div>
 
     <script>
+        // FIXED: Re-established the full Render API Endpoint string
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
-        let isBooting = true; 
+        let isTyping = false; 
 
-        async function hashPasskey(password) {
-            const msgBuffer = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-function typeWriter(text, elementId, speed, callback) {
-    isTyping = true;
-    let i = 0;
-
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    element.innerHTML = "";
-
-    const textNode = document.createTextNode("");
-    const cursor = document.createElement("span");
-    cursor.className = "typewriter-cursor";
-
-    element.appendChild(textNode);
-    element.appendChild(cursor);
-
-    function type() {
-        if (i < text.length) {
-            textNode.textContent += text.charAt(i);
-            i++;
-            setTimeout(type, speed);
-        } else {
-            isTyping = false;
-
-            // Remove this line if you want the cursor to keep blinking after typing finishes
-            cursor.remove();
-
-            if (callback) callback();
-        }
-    }
-
-    type();
-}
+        function typeWriter(text, elementId, speed, callback) {
+            isTyping = true;
+            let i = 0;
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            element.innerHTML = ""; 
 
             function type() {
                 if (i < text.length) {
@@ -173,7 +127,7 @@ function typeWriter(text, elementId, speed, callback) {
                     i++;
                     setTimeout(type, speed);
                 } else {
-                    element.classList.remove("typing");
+                    isTyping = false; 
                     if (callback) callback(); 
                 }
             }
@@ -199,15 +153,13 @@ function typeWriter(text, elementId, speed, callback) {
 
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
-                
-                // Triggers the typewriter data mapping sequence cleanly
-                typeWriter(vData.vibe, "vibe-text", 80);
+                document.getElementById("vibe-text").innerText = vData.vibe;
 
-                if (!isBooting) {
+                if (!isTyping) {
                     document.getElementById("server-status").innerText = "ONLINE";
                 }
             } catch (e) {
-                if (!isBooting) {
+                if (!isTyping) {
                     document.getElementById("server-status").innerText = "OFFLINE";
                 }
             }
@@ -215,23 +167,19 @@ function typeWriter(text, elementId, speed, callback) {
 
         document.getElementById('join-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const plainPasskey = document.getElementById('passkey').value;
-            const secureHash = await hashPasskey(plainPasskey);
-
             const payload = {
                 name: document.getElementById('name').value,
                 skill: document.getElementById('skill').value,
                 github_username: document.getElementById('github').value,
-                passkey: secureHash 
+                passkey: document.getElementById('passkey').value
             };
-
             const response = await fetch(`${BASE_URL}/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
-                alert("SUCCESS: Added to mainframe.");
+                alert("SUCCESS: Added to mainframe. Welcome to the club!");
                 updateData();
                 e.target.reset();
             }
@@ -240,9 +188,8 @@ function typeWriter(text, elementId, speed, callback) {
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
             if (!key) return;
-            const secureDeleteHash = await hashPasskey(key);
             try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${secureDeleteHash}`, { method: 'DELETE' });
+                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
                 if (response.ok) {
                     alert("SUCCESS: Profile deleted.");
                     updateData();
@@ -255,6 +202,7 @@ function typeWriter(text, elementId, speed, callback) {
             }
         }
 
+        // Search directory filtration
         function filterHackers() {
             const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
             const cards = document.querySelectorAll('.profile-card');
@@ -264,6 +212,7 @@ function typeWriter(text, elementId, speed, callback) {
             });
         }
 
+        // Matrix Rain Canvas Loop
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -285,14 +234,18 @@ function typeWriter(text, elementId, speed, callback) {
 
         setInterval(draw, 33);
         
-        // Boot order pipeline
+        // SEQUENTIAL BOOT SEQUENCE ENGINE:
+        // Step 1: Animate the primary terminal title header
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
+            // Step 2: Once completed, animate the status label characters
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                isBooting = false; 
+                // Step 3: Run the initial API fetch and schedule the 30-second loop
                 updateData();
-                setInterval(updateData, 30000); 
+                setInterval(updateData, 30000);
             });
         });
+
+        
     </script>
 </body>
 </html>
