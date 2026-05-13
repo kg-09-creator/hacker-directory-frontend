@@ -115,25 +115,37 @@
         let isTyping = false; 
 
         function typeWriter(text, elementId, speed, callback) {
-            isTyping = true;
-            let i = 0;
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            element.innerHTML = ""; 
+    isTyping = true;
+    let i = 0;
 
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, speed);
-                } else {
-                    isTyping = false; 
-                    if (callback) callback(); 
-                }
-            }
-            type();
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    element.innerHTML = "";
+
+    const textNode = document.createTextNode("");
+    const cursor = document.createElement("span");
+    cursor.className = "typewriter-cursor";
+
+    element.appendChild(textNode);
+    element.appendChild(cursor);
+
+    function type() {
+        if (i < text.length) {
+            textNode.textContent += text.charAt(i);
+            i++;
+            setTimeout(type, speed);
+        } else {
+            isTyping = false;
+            
+            cursor.remove();
+
+            if (callback) callback();
         }
+    }
 
+    type();
+}
         async function updateData() {
             try {
                 const res = await fetch(`${BASE_URL}/profiles`);
