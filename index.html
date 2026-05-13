@@ -50,22 +50,6 @@
     <script>
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
 
-            function typeWriter(text, elementId, speed) {
-    let i = 0;
-    const element = document.getElementById(elementId);
-    element.innerHTML = "";
-    function type() {
-        if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(type, speed);
-        }
-    }
-    type();
-}
-
-typeWriter("> ESTABLISHING_SECURE_CONNECTION...", "server-status", 50);
-
         async function updateData() {
             try {
                 const res = await fetch(`${BASE_URL}/profiles`);
