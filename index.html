@@ -71,6 +71,19 @@
     animation: blink-cursor 0.8s steps(1) infinite;
 }
 
+        .typewriter-cursor {
+    display: inline-block;
+    color: #00ff41;
+    animation: blink-cursor 0.8s steps(1) infinite;
+}
+
+@keyframes blink-cursor {
+    50% {
+        opacity: 0;
+    }
+}
+
+
 @keyframes blink-cursor {
     50% {
         opacity: 0;
@@ -114,25 +127,24 @@
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
         let isTyping = false; 
 
-        function typeWriter(text, elementId, speed, callback) {
+       function typeWriter(text, elementId, speed, callback) {
     isTyping = true;
     let i = 0;
 
     const element = document.getElementById(elementId);
     if (!element) return;
 
-    element.innerHTML = "";
+    element.textContent = "";
 
-    const textNode = document.createTextNode("");
     const cursor = document.createElement("span");
     cursor.className = "typewriter-cursor";
-
-    element.appendChild(textNode);
-    element.appendChild(cursor);
+    cursor.textContent = "█";
 
     function type() {
+        element.textContent = text.substring(0, i);
+        element.appendChild(cursor);
+
         if (i < text.length) {
-            textNode.textContent += text.charAt(i);
             i++;
             setTimeout(type, speed);
         } else {
