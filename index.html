@@ -1,293 +1,202 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Hacker Directory Terminal</title>
-    <style>
-        #matrix-rain {
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            width: 100%;
-            height: 100%;
-        }
-        body {
-            background-color: #0d0208;
-            color: #00ff41;
-            font-family: 'Courier New', monospace;
-            padding: 20px;
-            margin: 0;
-        }
-        .status-bar {
-            text-align: right;
-            font-size: 0.8em;
-            margin-bottom: 10px;
-            background: rgba(0,0,0,0.5);
-            padding: 5px;
-        }
-        .terminal-header {
-            background-color: rgba(13, 2, 8, 0.9);
-            border: 1px solid #00ff41;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .profile-card {
-            background-color: rgba(13, 2, 8, 0.85);
-            border: 1px solid #00ff41;
-            margin: 15px 0;
-            padding: 15px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
-        }
-        .profile-card::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
-        }
-        input, button {
-            background-color: #0d0208;
-            color: #00ff41;
-            border: 1px solid #00ff41;
-            padding: 10px;
-            margin: 5px;
-            font-family: 'Courier New', monospace;
-        }
-        #terminal-search {
-            width: 95%;
-            display: block;
-            margin-top: 10px;
-            border-style: dashed;
-        }
-        button:hover {
-            background-color: #00ff41;
-            color: #0d0208;
-            cursor: pointer;
-        }
-        .delete-btn {
-            color: #ff0000 !important;
-            border-color: #ff0000 !important;
-            font-size: 0.8em;
-        }
-        .typing::after {
-            content: "█";
-            animation: blink 0.8s infinite steps(2);
-            margin-left: 4px;
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-    </style>
-</head>
-<body>
-    <canvas id="matrix-rain"></canvas>
-    <div class="status-bar">
-        STATUS: <span id="server-status" class="typing">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
-    </div>
+<script>
+    const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+    let isTyping = false; 
 
-    <div class="terminal-header">
-        <h1 id="terminal-title" class="typing">> HACKER_DIRECTORY_V2.EXE</h1>
-        <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
-    </div>
+    // Define a single global audio context state variable
+    let globalAudioCtx = null;
 
-    <div class="terminal-header">
-        <h2>> SEARCH_DATABASE.exe</h2>
-        <span style="color: #00ff41;">> </span>
-        <!-- Added playTerminalClick() to oninput below -->
-        <input type="text" id="terminal-search" placeholder="TYPE_NAME..." oninput="filterHackers(); playTerminalClick();">
-    </div>
-
-    <div class="terminal-header">
-        <h2>> JOIN_THE_MAINFRAME.exe</h2>
-        <form id="join-form">
-            <!-- Added playTerminalClick() on keydown for all registration fields below -->
-            <input type="text" id="name" placeholder="NAME" required onkeydown="playTerminalClick()">
-            <input type="text" id="skill" placeholder="SKILL" required onkeydown="playTerminalClick()">
-            <input type="text" id="github" placeholder="GITHUB_USER" required onkeydown="playTerminalClick()">
-            <input type="password" id="passkey" placeholder="SECRET_PASSKEY" required onkeydown="playTerminalClick()">
-            <button type="submit">_SUBMIT_DATA</button>
-        </form>
-    </div>
-
-    <div id="hacker-list"></div>
-
-    <script>
-        const BASE_URL = "https://kgs-guestbook-api.onrender.com";
-        let isTyping = false; 
-
-        function playTerminalClick() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(950, audioCtx.currentTime); 
-                gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime); 
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.02); 
-            } catch (e) {
-                // Fails silently if browser blocks audio
+    // Helper function to create or wake up the audio context engine safely
+    function playTerminalClick() {
+        try {
+            // Initialize the audio architecture context only if it doesn't exist yet
+            if (!globalAudioCtx) {
+                globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-        }
-
-        async function hashPasskey(password) {
-            const msgBuffer = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        function typeWriter(text, elementId, speed, callback) {
-            isTyping = true;
-            let i = 0;
-            const element = document.getElementById(elementId);
-            if (!element) return;
             
-            element.classList.add("typing");
-            element.innerHTML = ""; 
-
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    playTerminalClick(); 
-                    i++;
-                    setTimeout(type, speed);
-                } else {
-                    isTyping = false; 
-                    element.classList.remove("typing");
-                    if (callback) callback(); 
-                }
+            // If the browser suspended it, do not attempt to play audio
+            if (globalAudioCtx.state === 'suspended') {
+                return; 
             }
-            type();
-        }
 
-        async function updateData() {
-            try {
-                const res = await fetch(`${BASE_URL}/profiles`);
-                const data = await res.json();
-                const list = document.getElementById("hacker-list");
-                list.innerHTML = "";
-                data.forEach(h => {
-                    const card = document.createElement("div");
-                    card.className = "profile-card";
-                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
-                    list.appendChild(card);
-                });
-
-                const sRes = await fetch(`${BASE_URL}/stats`);
-                const sData = await sRes.json();
-                document.getElementById("member-count").innerText = sData.total_hackers;
-
-                const vRes = await fetch(`${BASE_URL}/vibe`);
-                const vData = await vRes.json();
-                
-                document.getElementById("vibe-text").classList.add("typing");
-                typeWriter(vData.vibe, "vibe-text", 80, function() {
-                    document.getElementById("vibe-text").classList.remove("typing");
-                });
-
-                if (!isTyping) {
-                    document.getElementById("server-status").innerText = "ONLINE";
-                }
-            } catch (e) {
-                if (!isTyping) {
-                    document.getElementById("server-status").innerText = "OFFLINE";
-                }
-            }
-        }
-
-        document.getElementById('join-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            playTerminalClick(); // Play sound when submit button is pressed
+            const oscillator = globalAudioCtx.createOscillator();
+            const gainNode = globalAudioCtx.createGain();
             
-            const plainPasskey = document.getElementById('passkey').value;
-            const secureHash = await hashPasskey(plainPasskey);
-
-            const payload = {
-                name: document.getElementById('name').value,
-                skill: document.getElementById('skill').value,
-                github_username: document.getElementById('github').value,
-                passkey: secureHash 
-            };
-
-            const response = await fetch(`${BASE_URL}/join`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (response.ok) {
-                alert("SUCCESS: Added hashed credential data to mainframe.");
-                updateData();
-                e.target.reset();
-            }
-        });
-
-        async function deleteUser(name) {
-            const key = prompt(`Enter passkey for ${name}:`);
-            if (!key) return;
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(950, globalAudioCtx.currentTime); 
+            gainNode.gain.setValueAtTime(0.015, globalAudioCtx.currentTime); 
             
-            const secureDeleteHash = await hashPasskey(key);
-            try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${secureDeleteHash}`, { method: 'DELETE' });
-                if (response.ok) {
-                    alert("SUCCESS: Profile destroyed.");
-                    updateData();
-                } else {
-                    const result = await response.json();
-                    alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
-                }
-            } catch (err) {
-                alert("CRITICAL CONNECTION ERROR");
-            }
+            oscillator.connect(gainNode);
+            gainNode.connect(globalAudioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(globalAudioCtx.currentTime + 0.02); 
+        } catch (e) {
+            // Fails silently if sound systems are completely blocked
         }
+    }
 
-        function filterHackers() {
-            const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
-            const cards = document.querySelectorAll('.profile-card');
-            cards.forEach(card => {
-                const nameText = card.querySelector('h3').innerText.toLowerCase();
-                card.style.display = nameText.includes(searchTerm) ? "block" : "none";
-            });
+    // NEW SECURITY RULE BYPASS: Wakes up the sound engine on the first user interaction
+    function unlockAudio() {
+        if (!globalAudioCtx) {
+            globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-
-        const canvas = document.getElementById('matrix-rain');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const chars = "0123456789ABCDEF";
-        const drops = Array(Math.floor(canvas.width/16)).fill(1);
-
-        function draw() {
-            ctx.fillStyle = "rgba(13,2,8,0.1)";
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.fillStyle = "#00ff41";
-            ctx.font = "16px monospace";
-            drops.forEach((y, i) => {
-                ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
-                if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
-            });
+        if (globalAudioCtx.state === 'suspended') {
+            globalAudioCtx.resume(); // Force the browser to unmute the page
         }
+        // Remove the listeners immediately so this only triggers once per visit
+        window.removeEventListener('click', unlockAudio);
+        window.removeEventListener('keydown', unlockAudio);
+    }
 
-        setInterval(draw, 33);
+    // Attach interaction listeners to look for the first touch event
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+
+    async function hashPasskey(password) {
+        const msgBuffer = new TextEncoder().encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function typeWriter(text, elementId, speed, callback) {
+        isTyping = true;
+        let i = 0;
+        const element = document.getElementById(elementId);
+        if (!element) return;
         
-        typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
-            typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                updateData();
-                setInterval(updateData, 30000);
+        element.classList.add("typing");
+        element.innerHTML = ""; 
+
+        function type() {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                playTerminalClick(); 
+                i++;
+                setTimeout(type, speed);
+            } else {
+                isTyping = false; 
+                element.classList.remove("typing");
+                if (callback) callback(); 
+            }
+        }
+        type();
+    }
+
+    async function updateData() {
+        try {
+            const res = await fetch(`${BASE_URL}/profiles`);
+            const data = await res.json();
+            const list = document.getElementById("hacker-list");
+            list.innerHTML = "";
+            data.forEach(h => {
+                const card = document.createElement("div");
+                card.className = "profile-card";
+                card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
+                list.appendChild(card);
             });
+
+            const sRes = await fetch(`${BASE_URL}/stats`);
+            const sData = await sRes.json();
+            document.getElementById("member-count").innerText = sData.total_hackers;
+
+            const vRes = await fetch(`${BASE_URL}/vibe`);
+            const vData = await vRes.json();
+            
+            document.getElementById("vibe-text").classList.add("typing");
+            typeWriter(vData.vibe, "vibe-text", 80, function() {
+                document.getElementById("vibe-text").classList.remove("typing");
+            });
+
+            if (!isTyping) {
+                document.getElementById("server-status").innerText = "ONLINE";
+            }
+        } catch (e) {
+            if (!isTyping) {
+                document.getElementById("server-status").innerText = "OFFLINE";
+            }
+        }
+    }
+
+    document.getElementById('join-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        playTerminalClick(); 
+        
+        const plainPasskey = document.getElementById('passkey').value;
+        const secureHash = await hashPasskey(plainPasskey);
+
+        const payload = {
+            name: document.getElementById('name').value,
+            skill: document.getElementById('skill').value,
+            github_username: document.getElementById('github').value,
+            passkey: secureHash 
+        };
+
+        const response = await fetch(`${BASE_URL}/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-    </script>
-</body>
-</html>
+        if (response.ok) {
+            alert("SUCCESS: Added hashed credential data to mainframe.");
+            updateData();
+            e.target.reset();
+        }
+    });
+
+    async function deleteUser(name) {
+        const key = prompt(`Enter passkey for ${name}:`);
+        if (!key) return;
+        
+        const secureDeleteHash = await hashPasskey(key);
+        try {
+            const response = await fetch(`${BASE_URL}/delete/${name}/${secureDeleteHash}`, { method: 'DELETE' });
+            if (response.ok) {
+                alert("SUCCESS: Profile destroyed.");
+                updateData();
+            } else {
+                const result = await response.json();
+                alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
+            }
+        } catch (err) {
+            alert("CRITICAL CONNECTION ERROR");
+        }
+    }
+
+    function filterHackers() {
+        const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
+        const cards = document.querySelectorAll('.profile-card');
+        cards.forEach(card => {
+            const nameText = card.querySelector('h3').innerText.toLowerCase();
+            card.style.display = nameText.includes(searchTerm) ? "block" : "none";
+        });
+    }
+
+    const canvas = document.getElementById('matrix-rain');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const chars = "0123456789ABCDEF";
+    const drops = Array(Math.floor(canvas.width/16)).fill(1);
+
+    function draw() {
+        ctx.fillStyle = "rgba(13,2,8,0.1)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "#00ff41";
+        ctx.font = "16px monospace";
+        drops.forEach((y, i) => {
+            ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
+            if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        });
+    }
+
+    setInterval(draw, 33);
+    
+    typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
+        typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
+            updateData();
+            setInterval(updateData, 30000);
+        });
+    });
+</script>
