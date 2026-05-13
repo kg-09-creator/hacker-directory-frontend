@@ -9,24 +9,34 @@
         .terminal-header { background-color: rgba(13, 2, 8, 0.9); border: 1px solid #00ff41; padding: 20px; margin-bottom: 20px; }
         .profile-card { background-color: rgba(13, 2, 8, 0.85); border: 1px solid #00ff41; margin: 15px 0; padding: 15px; }
         input, button { background-color: #0d0208; color: #00ff41; border: 1px solid #00ff41; padding: 10px; margin: 5px; font-family: 'Courier New', monospace; }
+        
+        /* Fixed Search Bar styling */
+        #terminal-search { width: 95%; display: block; margin-top: 10px; border-style: dashed; }
+        
         button:hover { background-color: #00ff41; color: #0d0208; cursor: pointer; }
         .delete-btn { color: #ff0000 !important; border-color: #ff0000 !important; font-size: 0.8em; }
     </style>
 </head>
 <body>
     <canvas id="matrix-rain"></canvas>
+    
     <div class="status-bar">
         STATUS: <span id="server-status">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
     </div>
+
     <div class="terminal-header">
         <h1>> HACKER_DIRECTORY_V2.EXE</h1>
         <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
+
+    <!-- Search Section -->
     <div class="terminal-header">
-        <div class="terminal-header">
-            <h2>> SEARCH_DATABASE.exe</h2>
-            <input type="text" id="terminal-search" placeholder="TYPE_NAME_TO_FILTER..." oninput="filterHackers()">
-        </div>
+        <h2>> SEARCH_DATABASE.exe</h2>
+        <input type="text" id="terminal-search" placeholder="TYPE_NAME_TO_FILTER..." oninput="filterHackers()">
+    </div>
+
+    <!-- Join Section -->
+    <div class="terminal-header">
         <h2>> JOIN_THE_MAINFRAME.exe</h2>
         <form id="join-form">
             <input type="text" id="name" placeholder="NAME" required>
@@ -36,6 +46,7 @@
             <button type="submit">_SUBMIT_DATA</button>
         </form>
     </div>
+
     <div id="hacker-list"></div>
 
     <script>
@@ -65,7 +76,6 @@
                 document.getElementById("server-status").innerText = "ONLINE";
             } catch (e) { 
                 document.getElementById("server-status").innerText = "OFFLINE";
-                console.error("Connection error:", e);
             }
         }
 
@@ -77,44 +87,43 @@
                 github_username: document.getElementById('github').value,
                 passkey: document.getElementById('passkey').value
             };
-
             const response = await fetch(`${BASE_URL}/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
             if (response.ok) {
                 alert("SUCCESS: Added to mainframe.");
-                updateData(); 
+                updateData();
                 e.target.reset();
-            } else {
-                alert("ERROR: Failed to join.");
             }
         });
 
         async function deleteUser(name) {
-    const key = prompt(`Enter passkey for ${name}:`);
-    if (!key) return;
-
-    try {
-        const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { 
-            method: 'DELETE' 
-        });
-
-        if (response.ok) {
-            alert("SUCCESS: Profile deleted.");
-            updateData(); 
-        } else {
-            const result = await response.json();
-            alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
+            const key = prompt(`Enter passkey for ${name}:`);
+            if (!key) return;
+            try {
+                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
+                if (response.ok) {
+                    alert("SUCCESS: Profile deleted.");
+                    updateData();
+                } else {
+                    const result = await response.json();
+                    alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
+                }
+            } catch (err) { alert("CRITICAL ERROR"); }
         }
-    } catch (err) {
-        alert("CRITICAL ERROR: Connection to mainframe lost.");
-    }
-}
 
+        function filterHackers() {
+            const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
+            const cards = document.querySelectorAll('.profile-card');
+            cards.forEach(card => {
+                const nameText = card.querySelector('h3').innerText.toLowerCase();
+                card.style.display = nameText.includes(searchTerm) ? "block" : "none";
+            });
+        }
 
+        // Matrix Rain
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
@@ -130,26 +139,8 @@
             });
         }
         setInterval(draw, 33);
-        
         setInterval(updateData, 30000);
         updateData();
-
-    function filterHackers() {
-    const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
-    const cards = document.querySelectorAll('.profile-card');
-
-    cards.forEach(card => {
-        // Look at the username inside each card
-        const nameText = card.querySelector('h3').innerText.toLowerCase();
-        
-        if (nameText.includes(searchTerm)) {
-            card.style.display = "block"; // Show it
-        } else {
-            card.style.display = "none";  // Hide it
-        }
-    });
-}
-
     </script>
 </body>
 </html>
