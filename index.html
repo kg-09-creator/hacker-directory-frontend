@@ -48,122 +48,133 @@
     <div id="hacker-list"></div>
 
     <script>
-        const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+let isTyping = false; // Flag to block API updates while typing
 
-        function typeWriter(text, elementId, speed) {
+function typeWriter(text, elementId, speed) {
+    isTyping = true;
     let i = 0;
     const element = document.getElementById(elementId);
+    if (!element) return;
     
-    if (element.innerHTML.includes("ONLINE")) {
-        element.innerHTML = element.innerHTML.replace("ONLINE", "");
-    } else {
-        element.innerHTML = "";
-    }
+    element.innerHTML = ""; // Clean wipe
 
     function type() {
         if (i < text.length) {
             element.innerHTML += text.charAt(i);
             i++;
             setTimeout(type, speed);
+        } else {
+            isTyping = false; // Typewriter finished! Allow API status updates again
         }
     }
     type();
 }
 
-// Call the function with a clean leading space to separate it from "STATUS:"
-typeWriter(" ESTABLISHING_SECURE_CONNECTION...", "server-status", 50);
+// Call the function directly
+typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 50);
 
-
-        async function updateData() {
-            try {
-                const res = await fetch(`${BASE_URL}/profiles`);
-                const data = await res.json();
-                const list = document.getElementById("hacker-list");
-                list.innerHTML = "";
-                data.forEach(h => {
-                    const card = document.createElement("div");
-                    card.className = "profile-card";
-                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
-                    list.appendChild(card);
-                });
-
-                const sRes = await fetch(`${BASE_URL}/stats`);
-                const sData = await sRes.json();
-                document.getElementById("member-count").innerText = sData.total_hackers;
-
-                const vRes = await fetch(`${BASE_URL}/vibe`);
-                const vData = await vRes.json();
-                document.getElementById("vibe-text").innerText = vData.vibe;
-                
-                document.getElementById("server-status").innerText = "ONLINE";
-            } catch (e) { 
-                document.getElementById("server-status").innerText = "OFFLINE";
-            }
-        }
-
-        document.getElementById('join-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                name: document.getElementById('name').value,
-                skill: document.getElementById('skill').value,
-                github_username: document.getElementById('github').value,
-                passkey: document.getElementById('passkey').value
-            };
-            const response = await fetch(`${BASE_URL}/join`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (response.ok) {
-                alert("SUCCESS: Added to mainframe.");
-                updateData();
-                e.target.reset();
-            }
+async function updateData() {
+    try {
+        const res = await fetch(`${BASE_URL}/profiles`);
+        const data = await res.json();
+        const list = document.getElementById("hacker-list");
+        list.innerHTML = "";
+        data.forEach(h => {
+            const card = document.createElement("div");
+            card.className = "profile-card";
+            card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
+            list.appendChild(card);
         });
 
-        async function deleteUser(name) {
-            const key = prompt(`Enter passkey for ${name}:`);
-            if (!key) return;
-            try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
-                if (response.ok) {
-                    alert("SUCCESS: Profile deleted.");
-                    updateData();
-                } else {
-                    const result = await response.json();
-                    alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
-                }
-            } catch (err) { alert("CRITICAL ERROR"); }
-        }
+        const sRes = await fetch(`${BASE_URL}/stats`);
+        const sData = await sRes.json();
+        document.getElementById("member-count").innerText = sData.total_hackers;
 
-        function filterHackers() {
-            const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
-            const cards = document.querySelectorAll('.profile-card');
-            cards.forEach(card => {
-                const nameText = card.querySelector('h3').innerText.toLowerCase();
-                card.style.display = nameText.includes(searchTerm) ? "block" : "none";
-            });
-        }
+        const vRes = await fetch(`${BASE_URL}/vibe`);
+        const vData = await vRes.json();
+        document.getElementById("vibe-text").innerText = vData.vibe;
 
-        // Matrix Rain
-        const canvas = document.getElementById('matrix-rain');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        const chars = "0123456789ABCDEF";
-        const drops = Array(Math.floor(canvas.width/16)).fill(1);
-        function draw() {
-            ctx.fillStyle = "rgba(13,2,8,0.1)"; ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.fillStyle = "#00ff41"; ctx.font = "16px monospace";
-            drops.forEach((y, i) => {
-                ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
-                if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
-            });
+        // ONLY change text to ONLINE if the typewriter is not actively running
+        if (!isTyping) {
+            document.getElementById("server-status").innerText = "ONLINE";
         }
-        setInterval(draw, 33);
-        setInterval(updateData, 30000);
+    } catch (e) {
+        if (!isTyping) {
+            document.getElementById("server-status").innerText = "OFFLINE";
+        }
+    }
+}
+
+document.getElementById('join-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('name').value,
+        skill: document.getElementById('skill').value,
+        github_username: document.getElementById('github').value,
+        passkey: document.getElementById('passkey').value
+    };
+    const response = await fetch(`${BASE_URL}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (response.ok) {
+        alert("SUCCESS: Added to mainframe.");
         updateData();
-    
-    </script>
+        e.target.reset();
+    }
+});
+
+async function deleteUser(name) {
+    const key = prompt(`Enter passkey for ${name}:`);
+    if (!key) return;
+    try {
+        const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
+        if (response.ok) {
+            alert("SUCCESS: Profile deleted.");
+            updateData();
+        } else {
+            const result = await response.json();
+            alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
+        }
+    } catch (err) {
+        alert("CRITICAL ERROR");
+    }
+}
+
+function filterHackers() {
+    const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
+    const cards = document.querySelectorAll('.profile-card');
+    cards.forEach(card => {
+        const nameText = card.querySelector('h3').innerText.toLowerCase();
+        card.style.display = nameText.includes(searchTerm) ? "block" : "none";
+    });
+}
+
+// Matrix Rain
+const canvas = document.getElementById('matrix-rain');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const chars = "0123456789ABCDEF";
+const drops = Array(Math.floor(canvas.width/16)).fill(1);
+
+function draw() {
+    ctx.fillStyle = "rgba(13,2,8,0.1)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "#00ff41";
+    ctx.font = "16px monospace";
+    drops.forEach((y, i) => {
+        ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
+        if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+    });
+}
+
+setInterval(draw, 33);
+setInterval(updateData, 30000);
+updateData();
+</script>
 </body>
 </html>
