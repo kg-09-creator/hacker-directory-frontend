@@ -36,19 +36,6 @@
             border: 1px solid #00ff41;
             margin: 15px 0;
             padding: 15px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
-        }
-        .profile-card::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
         }
         input, button {
             background-color: #0d0208;
@@ -74,8 +61,7 @@
             border-color: #ff0000 !important;
             font-size: 0.8em;
         }
-        
-        /* SOLID BLINKING CURSOR: Attaches a solid terminal block when typing is active */
+        /* Structural cursor rule mapping */
         .typing::after {
             content: "█";
             animation: blink 0.8s infinite steps(2);
@@ -89,11 +75,13 @@
 </head>
 <body>
     <canvas id="matrix-rain"></canvas>
+    
     <div class="status-bar">
-        STATUS: <span id="server-status">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
+        STATUS: <span id="server-status" class="typing">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
     </div>
 
     <div class="terminal-header">
+        <!-- FIXED: Added explicit id marker attribute tags to prevent render crashes -->
         <h1 id="terminal-title">> HACKER_DIRECTORY_V2.EXE</h1>
         <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
@@ -118,11 +106,9 @@
     <div id="hacker-list"></div>
 
     <script>
-        // FIXED URL ADDRESS PATHWAY LINK
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
-        let isBooting = true; // Prevents background sync clashes during startup
+        let isBooting = true; 
 
-        // SHA-256 Hashing Pipeline
         async function hashPasskey(password) {
             const msgBuffer = new TextEncoder().encode(password);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -130,7 +116,6 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // Clean, Robust Typewriter Engine
         function typeWriter(text, elementId, speed, callback) {
             let i = 0;
             const element = document.getElementById(elementId);
@@ -172,7 +157,7 @@
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
                 
-                // Animates the live server vibe character text smoothly
+                // Triggers the typewriter data mapping sequence cleanly
                 typeWriter(vData.vibe, "vibe-text", 80);
 
                 if (!isBooting) {
@@ -187,7 +172,6 @@
 
         document.getElementById('join-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const plainPasskey = document.getElementById('passkey').value;
             const secureHash = await hashPasskey(plainPasskey);
 
@@ -204,7 +188,7 @@
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
-                alert("SUCCESS: Added profile data to mainframe.");
+                alert("SUCCESS: Added to mainframe.");
                 updateData();
                 e.target.reset();
             }
@@ -217,14 +201,14 @@
             try {
                 const response = await fetch(`${BASE_URL}/delete/${name}/${secureDeleteHash}`, { method: 'DELETE' });
                 if (response.ok) {
-                    alert("SUCCESS: Profile destroyed.");
+                    alert("SUCCESS: Profile deleted.");
                     updateData();
                 } else {
                     const result = await response.json();
                     alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
                 }
             } catch (err) {
-                alert("CRITICAL CONNECTION ERROR");
+                alert("CRITICAL ERROR");
             }
         }
 
@@ -237,34 +221,33 @@
             });
         }
 
-        // Matrix Rain Loop Setup
         const canvas = document.getElementById('matrix-rain');
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            const chars = "0123456789ABCDEF";
-            const drops = Array(Math.floor(canvas.width/16)).fill(1);
-            function draw() {
-                ctx.fillStyle = "rgba(13,2,8,0.1)";
-                ctx.fillRect(0,0,canvas.width,canvas.height);
-                ctx.fillStyle = "#00ff41";
-                ctx.font = "16px monospace";
-                drops.forEach((y, i) => {
-                    ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
-                    if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                    drops[i]++;
-                });
-            }
-            setInterval(draw, 33);
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const chars = "0123456789ABCDEF";
+        const drops = Array(Math.floor(canvas.width/16)).fill(1);
+
+        function draw() {
+            ctx.fillStyle = "rgba(13,2,8,0.1)";
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#00ff41";
+            ctx.font = "16px monospace";
+            drops.forEach((y, i) => {
+                ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
+                if(y*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
         }
 
-        // CLEAN SEQUENTIAL STARTUP CHAIN:
+        setInterval(draw, 33);
+        
+        // Boot order pipeline
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                isBooting = false; // Turn off startup block
-                updateData(); // Fire database connection smoothly
-                setInterval(updateData, 30000); // Check for data updates every 30 seconds
+                isBooting = false; 
+                updateData();
+                setInterval(updateData, 30000); 
             });
         });
     </script>
