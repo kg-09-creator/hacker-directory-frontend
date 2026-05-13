@@ -23,6 +23,10 @@
         <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
     </div>
     <div class="terminal-header">
+        <div class="terminal-header">
+            <h2>> SEARCH_DATABASE.exe</h2>
+            <input type="text" id="terminal-search" placeholder="TYPE_NAME_TO_FILTER..." oninput="filterHackers()">
+        </div>
         <h2>> JOIN_THE_MAINFRAME.exe</h2>
         <form id="join-form">
             <input type="text" id="name" placeholder="NAME" required>
@@ -49,7 +53,7 @@
                     card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
                     list.appendChild(card);
                 });
-                
+
                 const sRes = await fetch(`${BASE_URL}/stats`);
                 const sData = await sRes.json();
                 document.getElementById("member-count").innerText = sData.total_hackers;
@@ -81,7 +85,7 @@
             });
 
             if (response.ok) {
-                alert("SUCCESS: Added to mainframe. Welcome to the club!");
+                alert("SUCCESS: Added to mainframe.");
                 updateData(); 
                 e.target.reset();
             } else {
@@ -129,6 +133,23 @@
         
         setInterval(updateData, 30000);
         updateData();
+
+    function filterHackers() {
+    const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
+    const cards = document.querySelectorAll('.profile-card');
+
+    cards.forEach(card => {
+        // Look at the username inside each card
+        const nameText = card.querySelector('h3').innerText.toLowerCase();
+        
+        if (nameText.includes(searchTerm)) {
+            card.style.display = "block"; // Show it
+        } else {
+            card.style.display = "none";  // Hide it
+        }
+    });
+}
+
     </script>
 </body>
 </html>
