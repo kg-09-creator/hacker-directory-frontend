@@ -70,19 +70,15 @@
             font-size: 0.8em;
         }
 
-        .typing::after {
+        .typewriter-active::after {
             content: "█";
             display: inline-block;
-            margin-left: 4px;
+            margin-left: 3px;
             color: #00ff41;
-            animation: blink 0.8s infinite steps(2);
+            animation: blink-cursor 0.8s steps(1) infinite;
         }
 
-        @keyframes blink {
-            0%, 100% {
-                opacity: 1;
-            }
-
+        @keyframes blink-cursor {
             50% {
                 opacity: 0;
             }
@@ -131,17 +127,16 @@
             const element = document.getElementById(elementId);
             if (!element) return;
 
-            element.classList.add("typing");
-            element.innerHTML = "";
+            element.textContent = "";
+            element.classList.add("typewriter-active");
 
             function type() {
                 if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
+                    element.textContent += text.charAt(i);
                     i++;
                     setTimeout(type, speed);
                 } else {
                     isTyping = false;
-                    element.classList.remove("typing");
 
                     if (callback) callback();
                 }
@@ -161,7 +156,11 @@
                 data.forEach(h => {
                     const card = document.createElement("div");
                     card.className = "profile-card";
-                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
+                    card.innerHTML = `
+                        <h3>> USER: ${h.name}</h3>
+                        <p>SKILL: ${h.skill}</p>
+                        <button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>
+                    `;
                     list.appendChild(card);
                 });
 
