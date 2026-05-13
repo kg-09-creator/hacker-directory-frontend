@@ -2,18 +2,17 @@
     const BASE_URL = "https://kgs-guestbook-api.onrender.com";
     let isTyping = false; 
 
-    // Define a single global audio context state variable
+    // Setup the audio engine container
     let globalAudioCtx = null;
 
-    // Helper function to create or wake up the audio context engine safely
     function playTerminalClick() {
         try {
-            // Initialize the audio architecture context only if it doesn't exist yet
+            // Create the sound system if it doesn't exist yet
             if (!globalAudioCtx) {
                 globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
             
-            // If the browser suspended it, do not attempt to play audio
+            // If the browser is still blocking it, skip so it doesn't crash
             if (globalAudioCtx.state === 'suspended') {
                 return; 
             }
@@ -21,34 +20,40 @@
             const oscillator = globalAudioCtx.createOscillator();
             const gainNode = globalAudioCtx.createGain();
             
+            // Retro synth beep pitch
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(950, globalAudioCtx.currentTime); 
-            gainNode.gain.setValueAtTime(0.015, globalAudioCtx.currentTime); 
+            oscillator.frequency.setValueAtTime(850, globalAudioCtx.currentTime); 
+            
+            // VOLUME BOOST: Increased from 0.015 to 0.1 for a clear, loud click
+            gainNode.gain.setValueAtTime(0.1, globalAudioCtx.currentTime); 
             
             oscillator.connect(gainNode);
             gainNode.connect(globalAudioCtx.destination);
             
             oscillator.start();
-            oscillator.stop(globalAudioCtx.currentTime + 0.02); 
+            // Made the click sound slightly longer so it's easier to hear
+            oscillator.stop(globalAudioCtx.currentTime + 0.03); 
         } catch (e) {
-            // Fails silently if sound systems are completely blocked
+            // Fails silently if sound systems are broken
         }
     }
 
-    // NEW SECURITY RULE BYPASS: Wakes up the sound engine on the first user interaction
+    // UNMUTE PIPELINE: Forces the browser to turn on the website's audio
     function unlockAudio() {
         if (!globalAudioCtx) {
             globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
         if (globalAudioCtx.state === 'suspended') {
-            globalAudioCtx.resume(); // Force the browser to unmute the page
+            globalAudioCtx.resume().then(() => {
+                // Instantly play a click sound when unmuted to prove it works!
+                playTerminalClick();
+            });
+        } else {
+            playTerminalClick();
         }
-        // Remove the listeners immediately so this only triggers once per visit
-        window.removeEventListener('click', unlockAudio);
-        window.removeEventListener('keydown', unlockAudio);
     }
 
-    // Attach interaction listeners to look for the first touch event
+    // Watch the whole page for any click or keyboard tap to unlock the sound engine
     window.addEventListener('click', unlockAudio);
     window.addEventListener('keydown', unlockAudio);
 
@@ -71,7 +76,7 @@
         function type() {
             if (i < text.length) {
                 element.innerHTML += text.charAt(i);
-                playTerminalClick(); 
+                playTerminalClick(); // Types out with the louder volume setting
                 i++;
                 setTimeout(type, speed);
             } else {
@@ -172,6 +177,7 @@
         });
     }
 
+    // Matrix Rain Canvas Loop
     const canvas = document.getElementById('matrix-rain');
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
@@ -193,6 +199,7 @@
 
     setInterval(draw, 33);
     
+    // Start terminal boot sequence
     typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
         typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
             updateData();
