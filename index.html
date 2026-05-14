@@ -16,14 +16,14 @@
             background-color: #0d0208;
             color: #00ff41;
             font-family: 'Courier New', monospace;
-            padding: 20px;
+            padding: 16px 24px;
             margin: 0;
         }
 
         .status-bar {
             text-align: right;
             font-size: 0.8em;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             background: rgba(0,0,0,0.5);
             padding: 5px;
         }
@@ -31,33 +31,39 @@
         .terminal-header {
             background-color: rgba(13, 2, 8, 0.9);
             border: 1px solid #00ff41;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 16px 24px;
+            margin-bottom: 14px;
         }
 
-        .profile-card {
-            background-color: rgba(13, 2, 8, 0.85);
-            border: 1px solid #00ff41;
-            margin: 15px 0;
-            padding: 15px;
-        }
+.terminal-header h1 {
+    font-size: 2rem;
+    margin: 0 0 18px 0;
+}
 
-        input, button {
-            background-color: #0d0208;
-            color: #00ff41;
-            border: 1px solid #00ff41;
-            padding: 10px;
-            margin: 5px;
-            font-family: 'Courier New', monospace;
-        }
+.terminal-header h2 {
+    font-size: 1.5rem;
+    margin: 0 0 16px 0;
+}
 
-        #terminal-search {
-            width: 95%;
-            display: block;
-            margin-top: 10px;
-            border-style: dashed;
-        }
+.terminal-header p {
+    margin: 0;
+}
 
+#terminal-search {
+    width: 95%;
+    display: block;
+    margin-top: 8px;
+    border-style: dashed;
+}
+
+input, button {
+    background-color: #0d0208;
+    color: #00ff41;
+    border: 1px solid #00ff41;
+    padding: 10px;
+    margin: 4px;
+    font-family: 'Courier New', monospace;
+}
         button:hover {
             background-color: #00ff41;
             color: #0d0208;
@@ -87,6 +93,12 @@
                 opacity: 0;
             }
         }
+
+.compact-section {
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
     </style>
 </head>
 <body>
@@ -107,10 +119,10 @@
         <input type="text" id="terminal-search" placeholder="TYPE_NAME..." oninput="filterHackers()">
     </div>
 
-<div class="terminal-header">
+<div class="terminal-header compact-section">
     <h2>> SHARED_SKILL_NETWORK.exe</h2>
     <button type="button" onclick="toggleSkillNetwork()">_ANALYZE_SKILLS</button>
-    <div id="skill-network" style="display: none; margin-top: 15px;"></div>
+    <div id="skill-network" style="display: none; margin-top: 12px;"></div>
 </div>
 
     
