@@ -227,37 +227,43 @@
             }
         }
 
-        document.getElementById("join-form").addEventListener("submit", async function(e) {
-            e.preventDefault();
+document.getElementById("join-form").addEventListener("submit", async function(e) {
+    e.preventDefault();
 
-            const payload = {
-                name: document.getElementById("name").value,
-                skill: document.getElementById("skill").value,
-                github_username: document.getElementById("github").value,
-                passkey: document.getElementById("passkey").value
-            };
+    const payload = {
+        name: document.getElementById("name").value.trim(),
+        skill: document.getElementById("skill").value.trim(),
+        github_username: document.getElementById("github").value.trim(),
+        passkey: document.getElementById("passkey").value.trim()
+    };
 
-            try {
-                const response = await fetch(`${BASE_URL}/join`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(payload)
-                });
+    console.log("Submitting payload:", payload);
 
-                if (response.ok) {
-                    alert("SUCCESS: Added to mainframe. Welcome to the club!");
-                    e.target.reset();
-                    updateData(false);
-                } else {
-                    const result = await response.json();
-                    alert("ACCESS DENIED: " + (result.detail || "Could not add profile."));
-                }
-            } catch (err) {
-                alert("CRITICAL ERROR: Could not reach API.");
-            }
+    try {
+        const response = await fetch(`${BASE_URL}/join`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
         });
+
+        const responseText = await response.text();
+        console.log("Join status:", response.status);
+        console.log("Join response:", responseText);
+
+        if (response.ok) {
+            alert("SUCCESS: Added to mainframe. Welcome to the club!");
+            e.target.reset();
+            updateData(false);
+        } else {
+            alert(`ADD FAILED: ${response.status} - ${responseText}`);
+        }
+    } catch (err) {
+        console.error("Join error:", err);
+        alert("CRITICAL ERROR: Could not reach API. Check console.");
+    }
+});
 
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
