@@ -125,31 +125,30 @@
         let isTyping = false;
 
         function typeWriter(text, elementId, speed, callback) {
-            isTyping = true;
-            let i = 0;
+    let i = 0;
 
-            const element = document.getElementById(elementId);
-            if (!element) return;
+    const element = document.getElementById(elementId);
+    if (!element) return;
 
-            element.classList.add("typing");
-            element.innerHTML = "";
+    element.classList.remove("typing");
+    element.innerHTML = "";
+    element.classList.add("typing");
 
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, speed);
-                } else {
-                    isTyping = false;
-                    element.classList.remove("typing");
+    function type() {
+        if (i < text.length) {
+            element.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(type, speed);
+        } else {
+            element.classList.remove("typing");
 
-                    if (callback) callback();
-                }
-            }
-
-            type();
+            if (callback) callback();
         }
+    }
 
+    type();
+}
+        
         async function updateData() {
             try {
                 const res = await fetch(`${BASE_URL}/profiles`);
@@ -171,14 +170,16 @@
 
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
-                document.getElementById("vibe-text").innerText = vData.vibe;
+                typeWriter(vData.vibe, "vibe-text", 80);
 
-                if (!isTyping) {
-                    document.getElementById("server-status").innerText = "ONLINE";
-                }
+               if (!isTyping) {
+  document.getElementById("server-status").classList.remove("typing");
+document.getElementById("server-status").innerText = "ONLINE";
+}
             } catch (e) {
                 if (!isTyping) {
-                    document.getElementById("server-status").innerText = "OFFLINE";
+                    document.getElementById("server-status").classList.remove("typing");
+document.getElementById("server-status").innerText = "OFFLINE";
                 }
             }
         }
