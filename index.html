@@ -50,10 +50,11 @@
 }
 
 .profile-card {
-    background-color: rgba(13, 2, 8, 0.85);
+    background-color: rgba(0, 0, 0, 0.75);
     border: 1px solid #00ff41;
-    margin: 15px 0;
-    padding: 15px;
+    margin: 12px 0;
+    padding: 14px 18px;
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.18);
 }
 
 #terminal-search {
@@ -144,12 +145,16 @@ input, button {
         </form>
     </div>
 
+<div class="terminal-header">
+    <h2>> ACTIVE_HACKER_PROFILES.exe</h2>
     <div id="hacker-list"></div>
+</div>
 
     <script>
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
         let isTyping = false;
         let lastVibe = "";
+        let latestHackers = [];
 
         function typeWriter(text, elementId, speed, callback) {
             isTyping = true;
@@ -336,8 +341,6 @@ input, button {
                 }, 30000);
             });
         });
-
-    let latestHackers = [];
 
 function updateSkillNetwork(data) {
     const skillNetwork = document.getElementById("skill-network");
