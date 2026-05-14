@@ -13,11 +13,18 @@ Hi, this is a member management system featuring a retro-future terminal interfa
 - **Time Tracking:** Logged via Hackatime
 
 ## Features
-- **Secure Delete Protocol:** Profiles are protected by a `SECRET_PASSKEY`. Only the creator or the admin can delete their entry, but only the creator can see their passkey.
+- **Secure Profile Creation** Users can add a profile with their name, skill, username, and secret passkey.
+- **Secure Delete Protocol:** Profiles are protected by a `SECRET_PASSKEY`. Only the creator or the admin can delete their entry.
 - **Administrative Master Key:** A secure master key allowing the admin to delete test or spam accounts when needed.
+- **Search By Name** Users can quickly filter the directory by hacker name.
 - **Real-Time Dashboards:** 
     - `SYSTEM_VIBE`: An endpoint that analyzes the directory's status.
     - `MEMBERS_SYNCED`: A live counter of active hacker connections.
-- **Matrix Rain UI:** CSS/Canvas animation replicating Matrix Rain.
+- **Shared skill network** Users grouped by skills so hackers can find people with similar interests.
+- **Auto-updating skill analysis** The shared skill profile updates when a profile is added or deleted.
+- **Newest First Directory** Recently added profiles appear first.
+- **Privacy-Friendly Username Display** Usernames are shown as plain text instead of external profile links
+- **Matrix Rain UI:** CSS/Canvas animation inspired by the Matrix Rain effect.
+- **Typewriter boot/vibe animation** Terminal-style typing animation with a blinking cursor
+- **Frontend Error Handling** Frontend checks for `response.ok` and gives different alerts for connection errors vs. wrong passwords.
 - **API:** 5 GET endpoints and secure POST/DELETE handling.
-- **Error Handling** Frontend checks for `response.ok` and gives different alerts for connection errors vs. wrong passwords.
