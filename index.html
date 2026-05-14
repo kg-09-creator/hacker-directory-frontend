@@ -168,12 +168,8 @@
             try {
                 const res = await fetch(`${BASE_URL}/profiles`);
                 const data = await res.json();
-data.sort((a, b) => {
-    const dateA = new Date(a.created_at || a.createdAt || a.timestamp || 0);
-    const dateB = new Date(b.created_at || b.createdAt || b.timestamp || 0);
 
-    return dateB - dateA;
-});
+                data.reverse();
                 
                 latestHackers = data;
 
