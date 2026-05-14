@@ -123,90 +123,91 @@
     <script>
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
         let isTyping = false;
+        let lastVibe = "";
 
         function typeWriter(text, elementId, speed, callback) {
     let i = 0;
-
     const element = document.getElementById(elementId);
     if (!element) return;
 
+    if (element.typewriterTimer) {
+        clearTimeout(element.typewriterTimer);
+    }
+
     element.classList.remove("typing");
-    element.innerHTML = "";
+    element.textContent = "";
     element.classList.add("typing");
 
     function type() {
         if (i < text.length) {
-            element.innerHTML += text.charAt(i);
+            element.textContent += text.charAt(i);
             i++;
-            setTimeout(type, speed);
+            element.typewriterTimer = setTimeout(type, speed);
         } else {
             element.classList.remove("typing");
+            element.typewriterTimer = null;
 
             if (callback) callback();
         }
     }
 
     type();
-}
-        
-        async function updateData() {
-            try {
-                const res = await fetch(`${BASE_URL}/profiles`);
-                const data = await res.json();
+}        
+async function updateData(animateVibe = true) {
+    try {
+        const res = await fetch(`${BASE_URL}/profiles`);
+        const data = await res.json();
 
-                const list = document.getElementById("hacker-list");
-                list.innerHTML = "";
+        const list = document.getElementById("hacker-list");
+        list.innerHTML = "";
 
-                data.forEach(h => {
-                    const card = document.createElement("div");
-                    card.className = "profile-card";
-                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
-                    list.appendChild(card);
-                });
+        data.forEach(h => {
+            const card = document.createElement("div");
+            card.className = "profile-card";
 
-                const sRes = await fetch(`${BASE_URL}/stats`);
-                const sData = await sRes.json();
-                document.getElementById("member-count").innerText = sData.total_hackers;
+            const title = document.createElement("h3");
+            title.textContent = `> USER: ${h.name}`;
 
-                const vRes = await fetch(`${BASE_URL}/vibe`);
-                const vData = await vRes.json();
+            const skill = document.createElement("p");
+            skill.textContent = `SKILL: ${h.skill}`;
+
+            const deleteButton = document.createElement("button");
+            deleteButton.className = "delete-btn";
+            deleteButton.textContent = "[DELETE]";
+            deleteButton.addEventListener("click", () => deleteUser(h.name));
+
+            card.appendChild(title);
+            card.appendChild(skill);
+            card.appendChild(deleteButton);
+            list.appendChild(card);
+        });
+
+        const sRes = await fetch(`${BASE_URL}/stats`);
+        const sData = await sRes.json();
+        document.getElementById("member-count").innerText = sData.total_hackers;
+
+        const vRes = await fetch(`${BASE_URL}/vibe`);
+        const vData = await vRes.json();
+
+        if (vData.vibe !== lastVibe) {
+            lastVibe = vData.vibe;
+
+            if (animateVibe) {
                 typeWriter(vData.vibe, "vibe-text", 80);
-
-               if (!isTyping) {
-  document.getElementById("server-status").classList.remove("typing");
-document.getElementById("server-status").innerText = "ONLINE";
-}
-            } catch (e) {
-                if (!isTyping) {
-                    document.getElementById("server-status").classList.remove("typing");
-document.getElementById("server-status").innerText = "OFFLINE";
-                }
+            } else {
+                const vibeText = document.getElementById("vibe-text");
+                vibeText.classList.remove("typing");
+                vibeText.innerText = vData.vibe;
             }
         }
 
-        document.getElementById("join-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const payload = {
-                name: document.getElementById("name").value,
-                skill: document.getElementById("skill").value,
-                github_username: document.getElementById("github").value,
-                passkey: document.getElementById("passkey").value
-            };
-
-            const response = await fetch(`${BASE_URL}/join`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                alert("SUCCESS: Added to mainframe. Welcome to the club!");
-                updateData();
-                e.target.reset();
-            }
-        });
-
+        document.getElementById("server-status").classList.remove("typing");
+        document.getElementById("server-status").innerText = "ONLINE";
+    } catch (e) {
+        document.getElementById("server-status").classList.remove("typing");
+        document.getElementById("server-status").innerText = "OFFLINE";
+    }
+}
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
             if (!key) return;
@@ -218,7 +219,7 @@ document.getElementById("server-status").innerText = "OFFLINE";
 
                 if (response.ok) {
                     alert("SUCCESS: Profile deleted.");
-                    updateData();
+                    updateData(false);
                 } else {
                     const result = await response.json();
                     alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
@@ -267,12 +268,12 @@ document.getElementById("server-status").innerText = "OFFLINE";
 
         setInterval(draw, 33);
 
-        typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
-            typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
-                updateData();
-                setInterval(updateData, 30000);
-            });
-        });
+typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
+    typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
+        updateData(true);
+        setInterval(() => updateData(true), 30000);
+    });
+});
     </script>
 </body>
 </html>
