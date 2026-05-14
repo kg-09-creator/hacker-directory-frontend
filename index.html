@@ -122,10 +122,13 @@
 
     <script>
         const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+        let isTyping = false;
         let lastVibe = "";
 
         function typeWriter(text, elementId, speed, callback) {
+            isTyping = true;
             let i = 0;
+
             const element = document.getElementById(elementId);
             if (!element) return;
 
@@ -134,15 +137,16 @@
             }
 
             element.classList.remove("typing");
-            element.textContent = "";
+            element.innerHTML = "";
             element.classList.add("typing");
 
             function type() {
                 if (i < text.length) {
-                    element.textContent += text.charAt(i);
+                    element.innerHTML += text.charAt(i);
                     i++;
                     element.typewriterTimer = setTimeout(type, speed);
                 } else {
+                    isTyping = false;
                     element.classList.remove("typing");
                     element.typewriterTimer = null;
 
@@ -153,7 +157,7 @@
             type();
         }
 
-        async function updateData(animateVibe = true) {
+        async function updateData(animateVibe = false) {
             try {
                 const res = await fetch(`${BASE_URL}/profiles`);
                 const data = await res.json();
@@ -164,21 +168,7 @@
                 data.forEach(h => {
                     const card = document.createElement("div");
                     card.className = "profile-card";
-
-                    const title = document.createElement("h3");
-                    title.textContent = `> USER: ${h.name}`;
-
-                    const skill = document.createElement("p");
-                    skill.textContent = `SKILL: ${h.skill}`;
-
-                    const deleteButton = document.createElement("button");
-                    deleteButton.className = "delete-btn";
-                    deleteButton.textContent = "[DELETE]";
-                    deleteButton.addEventListener("click", () => deleteUser(h.name));
-
-                    card.appendChild(title);
-                    card.appendChild(skill);
-                    card.appendChild(deleteButton);
+                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
                     list.appendChild(card);
                 });
 
@@ -188,7 +178,6 @@
 
                 const vRes = await fetch(`${BASE_URL}/vibe`);
                 const vData = await vRes.json();
-                const vibeText = document.getElementById("vibe-text");
 
                 if (vData.vibe !== lastVibe) {
                     lastVibe = vData.vibe;
@@ -196,6 +185,8 @@
                     if (animateVibe) {
                         typeWriter(vData.vibe, "vibe-text", 80);
                     } else {
+                        const vibeText = document.getElementById("vibe-text");
+
                         if (vibeText.typewriterTimer) {
                             clearTimeout(vibeText.typewriterTimer);
                             vibeText.typewriterTimer = null;
@@ -206,73 +197,49 @@
                     }
                 }
 
-                const serverStatus = document.getElementById("server-status");
-                if (serverStatus.typewriterTimer) {
-                    clearTimeout(serverStatus.typewriterTimer);
-                    serverStatus.typewriterTimer = null;
+                if (!isTyping) {
+                    const serverStatus = document.getElementById("server-status");
+                    serverStatus.classList.remove("typing");
+                    serverStatus.innerText = "ONLINE";
                 }
-
-                serverStatus.classList.remove("typing");
-                serverStatus.innerText = "ONLINE";
             } catch (e) {
-                const serverStatus = document.getElementById("server-status");
-
-                if (serverStatus.typewriterTimer) {
-                    clearTimeout(serverStatus.typewriterTimer);
-                    serverStatus.typewriterTimer = null;
+                if (!isTyping) {
+                    const serverStatus = document.getElementById("server-status");
+                    serverStatus.classList.remove("typing");
+                    serverStatus.innerText = "OFFLINE";
                 }
-
-                serverStatus.classList.remove("typing");
-                serverStatus.innerText = "OFFLINE";
             }
         }
 
-document.getElementById("join-form").addEventListener("submit", async function(e) {
-    e.preventDefault();
+        document.getElementById('join-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-    const payload = {
-        name: document.getElementById("name").value.trim(),
-        skill: document.getElementById("skill").value.trim(),
-        github_username: document.getElementById("github").value.trim(),
-        passkey: document.getElementById("passkey").value.trim()
-    };
+            const payload = {
+                name: document.getElementById('name').value,
+                skill: document.getElementById('skill').value,
+                github_username: document.getElementById('github').value,
+                passkey: document.getElementById('passkey').value
+            };
 
-    console.log("Submitting payload:", payload);
+            const response = await fetch(`${BASE_URL}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-    try {
-        const response = await fetch(`${BASE_URL}/join`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
+            if (response.ok) {
+                alert("SUCCESS: Added to mainframe. Welcome to the club!");
+                updateData(false);
+                e.target.reset();
+            }
         });
-
-        const responseText = await response.text();
-        console.log("Join status:", response.status);
-        console.log("Join response:", responseText);
-
-        if (response.ok) {
-            alert("SUCCESS: Added to mainframe. Welcome to the club!");
-            e.target.reset();
-            updateData(false);
-        } else {
-            alert(`ADD FAILED: ${response.status} - ${responseText}`);
-        }
-    } catch (err) {
-        console.error("Join error:", err);
-        alert("CRITICAL ERROR: Could not reach API. Check console.");
-    }
-});
 
         async function deleteUser(name) {
             const key = prompt(`Enter passkey for ${name}:`);
             if (!key) return;
 
             try {
-                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, {
-                    method: "DELETE"
-                });
+                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
 
                 if (response.ok) {
                     alert("SUCCESS: Profile deleted.");
@@ -287,29 +254,23 @@ document.getElementById("join-form").addEventListener("submit", async function(e
         }
 
         function filterHackers() {
-            const searchInput = document.getElementById("terminal-search");
-            const searchTerm = searchInput.value.toLowerCase();
-            const cards = document.querySelectorAll(".profile-card");
+            const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
+            const cards = document.querySelectorAll('.profile-card');
 
             cards.forEach(card => {
-                const nameText = card.querySelector("h3").innerText.toLowerCase();
+                const nameText = card.querySelector('h3').innerText.toLowerCase();
                 card.style.display = nameText.includes(searchTerm) ? "block" : "none";
             });
         }
 
-        const canvas = document.getElementById("matrix-rain");
-        const ctx = canvas.getContext("2d");
+        const canvas = document.getElementById('matrix-rain');
+        const ctx = canvas.getContext('2d');
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-
-        resizeCanvas();
-        window.addEventListener("resize", resizeCanvas);
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
         const chars = "0123456789ABCDEF";
-        const drops = Array(Math.floor(window.innerWidth / 16)).fill(1);
+        const drops = Array(Math.floor(canvas.width / 16)).fill(1);
 
         function draw() {
             ctx.fillStyle = "rgba(13,2,8,0.1)";
@@ -331,21 +292,12 @@ document.getElementById("join-form").addEventListener("submit", async function(e
 
         setInterval(draw, 33);
 
-        const commandInput = document.getElementById("command-input");
-
-        if (commandInput) {
-            commandInput.addEventListener("keydown", function(e) {
-                if (e.key === "Enter") {
-                    runCommand(e.target.value);
-                    e.target.value = "";
-                }
-            });
-        }
-
         typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
             typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
                 updateData(true);
-                setInterval(() => updateData(true), 30000);
+                setInterval(function() {
+                    updateData(true);
+                }, 30000);
             });
         });
     </script>
