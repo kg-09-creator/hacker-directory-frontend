@@ -196,6 +196,11 @@ input, button {
                 data.reverse();
                 
                 latestHackers = data;
+                const skillNetwork = document.getElementById("skill-network");
+
+                if (skillNetwork && skillNetwork.style.display === "block") {
+                updateSkillNetwork(latestHackers);
+                }
 
                 const list = document.getElementById("hacker-list");
                 list.innerHTML = "";
