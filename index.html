@@ -350,30 +350,37 @@ if (skillNetwork && skillNetwork.style.display === "block") {
 
 function updateSkillNetwork(data) {
     const skillNetwork = document.getElementById("skill-network");
-    const skillCounts = {};
+    const skillGroups = {};
 
     skillNetwork.innerHTML = "";
 
     data.forEach(hacker => {
         const skill = hacker.skill.trim().toLowerCase();
+        const name = hacker.name.trim();
 
-        if (!skill) return;
+        if (!skill || !name) return;
 
-        skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+        if (!skillGroups[skill]) {
+            skillGroups[skill] = [];
+        }
+
+        skillGroups[skill].push(name);
     });
 
-    const sortedSkills = Object.entries(skillCounts).sort((a, b) => b[1] - a[1]);
+    const sortedSkills = Object.entries(skillGroups).sort((a, b) => {
+        return b[1].length - a[1].length;
+    });
 
     if (sortedSkills.length === 0) {
         skillNetwork.innerText = "NO_SKILL_CONNECTIONS_FOUND";
         return;
     }
 
-    skillNetwork.innerHTML = "";
-
-    sortedSkills.forEach(([skill, count]) => {
+    sortedSkills.forEach(([skill, names]) => {
         const line = document.createElement("p");
-        line.innerText = `> ${skill.toUpperCase()}: ${count} hacker${count === 1 ? "" : "s"}`;
+        const hackerLabel = names.length === 1 ? "hacker" : "hackers";
+
+        line.innerText = `> ${skill.toUpperCase()}: ${names.length} ${hackerLabel} - ${names.join(", ")}`;
         skillNetwork.appendChild(line);
     });
 }
