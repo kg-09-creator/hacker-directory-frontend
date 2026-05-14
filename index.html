@@ -168,7 +168,12 @@
                 data.forEach(h => {
                     const card = document.createElement("div");
                     card.className = "profile-card";
-                    card.innerHTML = `<h3>> USER: ${h.name}</h3><p>SKILL: ${h.skill}</p><button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>`;
+                    card.innerHTML = `
+                    <h3>> USER: ${h.name}</h3>
+                    <p>SKILL: ${h.skill}</p>
+                    <p>GITHUB: <a href="https://github.com/${h.github_username}" target="_blank" style="color: #00ff41;">${h.github_username}</a></p>
+                    <button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>
+                    `;
                     list.appendChild(card);
                 });
 
