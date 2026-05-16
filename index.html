@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hacker Directory Terminal</title>
+    <style>
+        #matrix-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background-color: #0d0208;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            padding: 16px 24px;
+            margin: 0;
+        }
+
+        .status-bar {
+            text-align: right;
+            font-size: 0.8em;
+            margin-bottom: 8px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px;
+        }
+
+        .terminal-header {
+            background-color: rgba(13, 2, 8, 0.9);
+            border: 1px solid #00ff41;
+            padding: 16px 24px;
+            margin-bottom: 14px;
+        }
+
+.terminal-header h1 {
+    font-size: 2rem;
+    margin: 0 0 18px 0;
+}
+
+.terminal-header h2 {
+    font-size: 1.5rem;
+    margin: 0 0 16px 0;
+}
+
+.terminal-header p {
+    margin: 0;
+}
+
+.profile-card {
+    background-color: rgba(0, 0, 0, 0.75);
+    border: 1px solid #00ff41;
+    margin: 12px 0;
+    padding: 14px 18px;
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.18);
+}
+
+#terminal-search {
+    width: 95%;
+    display: block;
+    margin-top: 8px;
+    border-style: dashed;
+}
+
+input, button {
+    background-color: #0d0208;
+    color: #00ff41;
+    border: 1px solid #00ff41;
+    padding: 10px;
+    margin: 4px;
+    font-family: 'Courier New', monospace;
+}
+        button:hover {
+            background-color: #00ff41;
+            color: #0d0208;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            color: #ff0000 !important;
+            border-color: #ff0000 !important;
+            font-size: 0.8em;
+        }
+
+        .typing::after {
+            content: "█";
+            display: inline-block;
+            margin-left: 4px;
+            color: #00ff41;
+            animation: blink 0.8s infinite steps(2);
+        }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+.compact-section {
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+    </style>
+</head>
+<body>
+    <canvas id="matrix-rain"></canvas>
+
+    <div class="status-bar">
+        STATUS: <span id="server-status">ONLINE</span> | MEMBERS_SYNCED: <span id="member-count">0</span>
+    </div>
+
+    <div class="terminal-header">
+        <h1 id="terminal-title">> HACKER_DIRECTORY_V2.EXE</h1>
+        <p>> SYSTEM_VIBE: <span id="vibe-text">ANALYZING...</span></p>
+    </div>
+
+    <div class="terminal-header">
+        <h2>> SEARCH_DATABASE.exe</h2>
+        <span style="color: #00ff41;">> </span>
+        <input type="text" id="terminal-search" placeholder="TYPE_NAME..." oninput="filterHackers()">
+    </div>
+
+<div class="terminal-header compact-section">
+    <h2>> SHARED_SKILL_NETWORK.exe</h2>
+    <button type="button" onclick="toggleSkillNetwork()">_ANALYZE_SKILLS</button>
+    <div id="skill-network" style="display: none; margin-top: 12px;"></div>
+</div>
+
+    
+    <div class="terminal-header">
+        <h2>> JOIN_THE_MAINFRAME.exe</h2>
+        <form id="join-form">
+            <input type="text" id="name" placeholder="NAME" required>
+            <input type="text" id="skill" placeholder="SKILL" required>
+            <input type="text" id="github" placeholder="GITHUB_USER" required>
+            <input type="password" id="passkey" placeholder="SECRET_PASSKEY" required>
+            <button type="submit">_SUBMIT_DATA</button>
+        </form>
+    </div>
+
+<div class="terminal-header">
+    <h2>> ACTIVE_HACKER_PROFILES.exe</h2>
+    <div id="hacker-list"></div>
+</div>
+
+    <script>
+        const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+        let isTyping = false;
+        let lastVibe = "";
+        let latestHackers = [];
+
+        function typeWriter(text, elementId, speed, callback) {
+            isTyping = true;
+            let i = 0;
+
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            if (element.typewriterTimer) {
+                clearTimeout(element.typewriterTimer);
+            }
+
+            element.classList.remove("typing");
+            element.innerHTML = "";
+            element.classList.add("typing");
+
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    element.typewriterTimer = setTimeout(type, speed);
+                } else {
+                    isTyping = false;
+                    element.classList.remove("typing");
+                    element.typewriterTimer = null;
+
+                    if (callback) callback();
+                }
+            }
+
+            type();
+        }
+
+        async function updateData(animateVibe = false) {
+            try {
+                const res = await fetch(`${BASE_URL}/profiles`);
+                const data = await res.json();
+
+                data.reverse();
+                
+                latestHackers = data;
+                const skillNetwork = document.getElementById("skill-network");
+
+if (skillNetwork && skillNetwork.style.display === "block") {
+    updateSkillNetwork(latestHackers);
+}
+
+
+                const list = document.getElementById("hacker-list");
+                list.innerHTML = "";
+
+                data.forEach(h => {
+                    const card = document.createElement("div");
+                    card.className = "profile-card";
+                card.innerHTML = `
+                <h3>> USER: ${h.name}</h3>
+                <p>SKILL: ${h.skill}</p>
+                <p>GITHUB_USER: ${h.github_username}</p>
+                <button class="delete-btn" onclick="deleteUser('${h.name}')">[DELETE]</button>
+                `;
+
+                    list.appendChild(card);
+                });
+
+                const sRes = await fetch(`${BASE_URL}/stats`);
+                const sData = await sRes.json();
+                document.getElementById("member-count").innerText = sData.total_hackers;
+
+                const vRes = await fetch(`${BASE_URL}/vibe`);
+                const vData = await vRes.json();
+
+                if (vData.vibe !== lastVibe) {
+                    lastVibe = vData.vibe;
+
+                    if (animateVibe) {
+                        typeWriter(vData.vibe, "vibe-text", 80);
+                    } else {
+                        const vibeText = document.getElementById("vibe-text");
+
+                        if (vibeText.typewriterTimer) {
+                            clearTimeout(vibeText.typewriterTimer);
+                            vibeText.typewriterTimer = null;
+                        }
+
+                        vibeText.classList.remove("typing");
+                        vibeText.innerText = vData.vibe;
+                    }
+                }
+
+                if (!isTyping) {
+                    const serverStatus = document.getElementById("server-status");
+                    serverStatus.classList.remove("typing");
+                    serverStatus.innerText = "ONLINE";
+                }
+            } catch (e) {
+                if (!isTyping) {
+                    const serverStatus = document.getElementById("server-status");
+                    serverStatus.classList.remove("typing");
+                    serverStatus.innerText = "OFFLINE";
+                }
+            }
+        }
+
+        document.getElementById('join-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payload = {
+                name: document.getElementById('name').value,
+                skill: document.getElementById('skill').value,
+                github_username: document.getElementById('github').value,
+                passkey: document.getElementById('passkey').value
+            };
+
+            const response = await fetch(`${BASE_URL}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert("SUCCESS: Added to mainframe. Welcome to the club!");
+                updateData(false);
+                e.target.reset();
+            }
+        });
+
+        async function deleteUser(name) {
+            const key = prompt(`Enter passkey for ${name}:`);
+            if (!key) return;
+
+            try {
+                const response = await fetch(`${BASE_URL}/delete/${name}/${key}`, { method: 'DELETE' });
+
+                if (response.ok) {
+                    alert("SUCCESS: Profile deleted.");
+                    updateData(false);
+                } else {
+                    const result = await response.json();
+                    alert("ACCESS DENIED: " + (result.detail || "Invalid passkey."));
+                }
+            } catch (err) {
+                alert("CRITICAL ERROR");
+            }
+        }
+
+        function filterHackers() {
+            const searchTerm = document.getElementById('terminal-search').value.toLowerCase();
+            const cards = document.querySelectorAll('.profile-card');
+
+            cards.forEach(card => {
+                const nameText = card.querySelector('h3').innerText.toLowerCase();
+                card.style.display = nameText.includes(searchTerm) ? "block" : "none";
+            });
+        }
+
+        const canvas = document.getElementById('matrix-rain');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = "0123456789ABCDEF";
+        const drops = Array(Math.floor(canvas.width / 16)).fill(1);
+
+        function draw() {
+            ctx.fillStyle = "rgba(13,2,8,0.1)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#00ff41";
+            ctx.font = "16px monospace";
+
+            drops.forEach((y, i) => {
+                ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * 16, y * 16);
+
+                if (y * 16 > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                drops[i]++;
+            });
+        }
+
+        setInterval(draw, 33);
+
+        typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, function() {
+            typeWriter("ESTABLISHING_SECURE_CONNECTION...", "server-status", 40, function() {
+                updateData(true);
+                setInterval(function() {
+                    updateData(true);
+                }, 30000);
+            });
+        });
+
+function updateSkillNetwork(data) {
+    const skillNetwork = document.getElementById("skill-network");
+    const skillGroups = {};
+
+    skillNetwork.innerHTML = "";
+
+    data.forEach(hacker => {
+        const skill = hacker.skill.trim().toLowerCase();
+        const name = hacker.name.trim();
+
+        if (!skill || !name) return;
+
+        if (!skillGroups[skill]) {
+            skillGroups[skill] = [];
+        }
+
+        skillGroups[skill].push(name);
+    });
+
+    const sortedSkills = Object.entries(skillGroups).sort((a, b) => {
+        return b[1].length - a[1].length;
+    });
+
+    if (sortedSkills.length === 0) {
+        skillNetwork.innerText = "NO_SKILL_CONNECTIONS_FOUND";
+        return;
+    }
+
+    sortedSkills.forEach(([skill, names]) => {
+        const line = document.createElement("p");
+        const hackerLabel = names.length === 1 ? "hacker" : "hackers";
+
+        line.innerText = `> ${skill.toUpperCase()}: ${names.length} ${hackerLabel} - ${names.join(", ")}`;
+        skillNetwork.appendChild(line);
+    });
+}
+
+function toggleSkillNetwork() {
+    const skillNetwork = document.getElementById("skill-network");
+
+    if (skillNetwork.style.display === "none") {
+        updateSkillNetwork(latestHackers);
+        skillNetwork.style.display = "block";
+    } else {
+        skillNetwork.style.display = "none";
+    }
+}
+
+    </script>
+</body>
+</html>
