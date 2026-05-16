@@ -160,7 +160,6 @@
         let lastVibe = "";
         let latestHackers = [];
 
-        // Global DOM Elements
         const hackerListEl = document.getElementById("hacker-list");
         const serverStatusEl = document.getElementById("server-status");
         const memberCountEl = document.getElementById("member-count");
@@ -241,7 +240,6 @@
 
         async function updateData(animateVibe = false) {
             try {
-                // Fetch Profiles using retry strategy
                 const res = await fetchWithRetry(`${BASE_URL}/profiles`);
                 if (!res.ok) throw new Error("Failed to pull network records.");
                 const data = await res.json();
@@ -254,7 +252,6 @@
                     updateSkillNetwork(latestHackers);
                 }
 
-                // Fetch Stats
                 const sRes = await fetch(`${BASE_URL}/stats`);
                 if (sRes.ok) {
                     const sData = await sRes.json();
@@ -302,12 +299,11 @@
         function filterHackers() {
             const searchTerm = searchInputEl.value.toLowerCase();
             const filtered = latestHackers.filter(hacker => 
-                hacker.name.toLowerCase().includes(searchTerm)
+                (hacker.name || "").toLowerCase().includes(searchTerm)
             );
             renderHackers(filtered);
         }
 
-        // This handles the form submission
         document.getElementById('join-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
