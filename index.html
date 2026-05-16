@@ -59,7 +59,6 @@
             box-shadow: 0 0 8px rgba(0, 255, 65, 0.18);
         }
 
-        /* Fixed the border override issue here */
         #terminal-search {
             width: 95%;
             display: block;
@@ -199,7 +198,6 @@
             type();
         }
 
-        // Human Optimization: Use a clean document fragment layout strategy to improve performance
         function renderHackers(hackersList) {
             hackerListEl.innerHTML = "";
             
@@ -227,7 +225,6 @@
             hackerListEl.appendChild(fragment);
         }
 
-        // Humanized Touch: Added network retry logic explicitly handling Render's free tier cold starts
         async function fetchWithRetry(url, options = {}, retries = 3) {
             for (let i = 0; i < retries; i++) {
                 try {
@@ -404,7 +401,6 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
-        // Human Optimization: Add input debouncing to prevent excessive browser DOM reflow loops while typing
         let searchTimeout;
         searchInputEl.addEventListener("input", () => {
             clearTimeout(searchTimeout);
@@ -413,7 +409,6 @@
         
         document.getElementById("toggle-skills-btn").addEventListener("click", toggleSkillNetwork);
 
-        // --- PERFORMANCE AND CUSTOM STYLING ENHANCED MATRIX ENGINE ---
         const canvas = document.getElementById('matrix-rain');
         const ctx = canvas.getContext('2d');
 
@@ -424,12 +419,11 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Mixed character set array (Half-width katakana and hex numbers) looks human polished
         const chars = "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉ1023456789ABCDEF".split("");
-        const drops = Array(Math.floor(canvas.width / 16)).fill(-20); // Offscreen initialization prevents raw top line alignment
+        const drops = Array(Math.floor(canvas.width / 16)).fill(-20); 
 
         function draw() {
-            ctx.fillStyle = "rgba(13,2,8,0.06)"; // Deeper alpha fade creates sharper character trails
+            ctx.fillStyle = "rgba(13,2,8,0.06)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.font = "16px monospace";
@@ -437,7 +431,6 @@
             for (let i = 0; i < drops.length; i++) {
                 const text = chars[Math.floor(Math.random() * chars.length)];
                 
-                // Varied text coloring adds depth to columns (replaces the sterile single green shade)
                 ctx.fillStyle = Math.random() > 0.98 ? "#ffffff" : "rgba(0, 255, 65, 0.85)";
                 
                 ctx.fillText(text, i * 16, drops[i] * 16);
@@ -449,7 +442,6 @@
             }
         }
         
-        // requestAnimationFrame frame scheduler loops efficiently, removing raw setInterval signatures
         function renderLoop() {
             draw();
             setTimeout(() => {
