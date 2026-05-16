@@ -1,5 +1,6 @@
 /**
  * Hacker Directory Core Application Logic
+ * Refactored for execution optimization, frame rate stability, and state integrity.
  */
 
 const CONFIG = {
@@ -8,7 +9,7 @@ const CONFIG = {
     MATRIX_SPEED: 33
 };
 
-// Global State Object (Avoids messy tracking variables scattered everywhere)
+// Centralized Application State
 const State = {
     isTyping: false,
     lastVibe: "",
@@ -16,9 +17,24 @@ const State = {
     filterTerm: ""
 };
 
+// --- DOM ELEMENT REFERENCE MAP ---
+const DOM = {
+    title: document.getElementById('terminal-title'),
+    status: document.getElementById('server-status'),
+    memberCount: document.getElementById('member-count'),
+    vibeText: document.getElementById('vibe-text'),
+    search: document.getElementById('terminal-search'),
+    skillNetwork: document.getElementById('skill-network'),
+    toggleSkillsBtn: document.getElementById('toggle-skills-btn'),
+    joinForm: document.getElementById('join-form'),
+    hackerList: document.getElementById('hacker-list'),
+    canvas: document.getElementById('matrix-rain')
+};
+
 // --- SECURITY UTILITIES ---
 /**
- * Prevents Cross-Site Scripting (XSS) by encoding untrusted strings.
+ * Strict XSS contextual text encoder. Prevents execution of malicious payloads
+ * injected into input nodes.
  */
 function sanitize(string) {
     const map = {
@@ -33,37 +49,46 @@ function sanitize(string) {
     return string.replace(reg, (match) => map[match]);
 }
 
-// --- DOM ELEMENT REFERENCES ---
-const DOM = {
-    title: document.getElementById('terminal-title'),
-    status: document.getElementById('server-status'),
-    memberCount: document.getElementById('member-count'),
-    vibeText: document.getElementById('vibe-text'),
-    search: document.getElementById('terminal-search'),
-    skillNetwork: document.getElementById('skill-network'),
-    toggleSkillsBtn: document.getElementById('toggle-skills-btn'),
-    joinForm: document.getElementById('join-form'),
-    hackerList: document.getElementById('hacker-list'),
-    canvas: document.getElementById('matrix-rain')
-};
-
-// --- ASYNC DATA LAYER ---
-async function apiFetch(endpoint, options = {}) {
-    const response = await fetch(`${CONFIG.BASE_URL}${endpoint}`, options);
-    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-    return response.json();
+// --- UTILITY UTILITIES (HUMAN ENHANCEMENTS) ---
+/**
+ * Contextual fallback wrapper specifically dealing with Render.com free-tier
+ * cold start spin-up delays.
+ */
+async function fetchWithRetry(endpoint, options = {}, retries = 3, delay = 2500) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(`${CONFIG.BASE_URL}${endpoint}`, options);
+            if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+            return await response.json();
+        } catch (err) {
+            if (i === retries - 1) throw err;
+            console.warn(`[Network Warning] Target microservice is asleep. Retry loop ${i + 1}/${retries} active...`);
+            await new Promise(res => setTimeout(res, delay));
+        }
+    }
 }
 
+/**
+ * Standard debounce wrapper to insulate layout reflows from aggressive keystrokes
+ */
+function debounce(func, timeout = 150) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+    };
+}
+
+// --- ASYNC DATA PIPELINE ---
 async function updateSystemData(animateVibe = false) {
     try {
-        // Concurrent fetching for optimized performance
+        // Run concurrent network promises to prevent blocking operations
         const [profilesData, statsData, vibeData] = await Promise.all([
-            apiFetch('/profiles'),
-            apiFetch('/stats'),
-            apiFetch('/vibe')
+            fetchWithRetry('/profiles'),
+            fetchWithRetry('/stats'),
+            fetchWithRetry('/vibe')
         ]);
 
-        // Process data safely
         State.profiles = [...profilesData].reverse();
         DOM.memberCount.textContent = sanitize(String(statsData.total_hackers));
         
@@ -73,35 +98,35 @@ async function updateSystemData(animateVibe = false) {
             renderSkillNetwork();
         }
 
-        // Contextually handle the vibe text state change
+        // Evaluate the text state strictly against previous cache to avoid resetting active CSS animations
         if (vibeData.vibe !== State.lastVibe) {
             State.lastVibe = vibeData.vibe;
             if (animateVibe) {
-                runTypewriter(vibeData.vibe, DOM.vibeText, 80);
+                // Hand off to the modern CSS class typewriter approach
+                DOM.vibeText.classList.remove("terminal-title-animate");
+                void DOM.vibeText.offsetWidth; // Force rendering pipeline layout reflow trick
+                DOM.vibeText.textContent = vibeData.vibe;
+                DOM.vibeText.classList.add("terminal-title-animate");
             } else {
-                clearTypewriter(DOM.vibeText);
+                DOM.vibeText.classList.remove("terminal-title-animate");
                 DOM.vibeText.textContent = vibeData.vibe;
             }
         }
 
-        if (!State.isTyping) {
-            DOM.status.textContent = "ONLINE";
-            DOM.status.classList.remove('typing');
-        }
+        DOM.status.textContent = "ONLINE";
+        DOM.status.classList.remove('terminal-title-animate');
     } catch (error) {
-        console.error("System sync failure:", error);
-        if (!State.isTyping) {
-            DOM.status.textContent = "OFFLINE";
-            DOM.status.classList.remove('typing');
-        }
+        console.error("System sync failed completely:", error);
+        DOM.status.textContent = "OFFLINE";
+        DOM.status.classList.remove('terminal-title-animate');
     }
 }
 
-// --- RENDERING LAYER ---
+// --- DOM LAYOUT ENGINE ---
 function renderProfiles() {
     DOM.hackerList.innerHTML = "";
     
-    // Filter profiles out from state cache before manipulating DOM
+    // Abstract the filter directly from state engine cache
     const filtered = State.profiles.filter(profile => 
         profile.name.toLowerCase().includes(State.filterTerm.toLowerCase())
     );
@@ -111,13 +136,13 @@ function renderProfiles() {
         return;
     }
 
+    // Performance Optimization: Batch inject using a layout fragment container
     const fragment = document.createDocumentFragment();
 
     filtered.forEach(hacker => {
         const card = document.createElement("div");
         card.className = "profile-card";
         
-        // Explicitly sanitized variables to guarantee total layout safety
         const safeName = sanitize(hacker.name);
         const safeSkill = sanitize(hacker.skill);
         const safeGithub = sanitize(hacker.github_username);
@@ -171,7 +196,7 @@ function renderSkillNetwork() {
     DOM.skillNetwork.appendChild(fragment);
 }
 
-// --- INTERACTIVE EVENT HANDLERS ---
+// --- INTERACTIVE TRANSACTION CONTROLLERS ---
 async function handleFormSubmit(e) {
     e.preventDefault();
 
@@ -194,10 +219,10 @@ async function handleFormSubmit(e) {
             e.target.reset();
             await updateSystemData(false);
         } else {
-            alert("ERROR: System transaction rejected.");
+            alert("ERROR: Server transaction rejected.");
         }
     } catch (err) {
-        alert("CRITICAL CONNECTION FAILURE");
+        alert("CRITICAL LOGISTICAL TRANSIT FAILURE");
     }
 }
 
@@ -211,20 +236,15 @@ async function handleDeleteUser(name) {
         });
 
         if (res.ok) {
-            alert("SUCCESS: Profile deleted.");
+            alert("SUCCESS: Profile dropped from remote database.");
             await updateSystemData(false);
         } else {
             const result = await res.json();
-            alert(`ACCESS DENIED: ${result.detail || "Invalid credential structure."}`);
+            alert(`ACCESS DENIED: ${result.detail || "Invalid verification response."}`);
         }
     } catch (err) {
-        alert("CRITICAL ERROR DURING DELETION INTERFACE");
+        alert("CRITICAL ARCHITECTURAL CONTEXT INTERRUPT");
     }
-}
-
-function handleSearch(e) {
-    State.filterTerm = e.target.value;
-    renderProfiles(); // Re-render from local filtered state cache
 }
 
 function toggleSkillNetwork() {
@@ -239,88 +259,85 @@ function toggleSkillNetwork() {
     }
 }
 
-// --- VISUAL INTERFACE ENHANCEMENTS ---
-function runTypewriter(text, element, speed, callback) {
-    clearTypewriter(element);
-    State.isTyping = true;
-    let i = 0;
-    element.classList.add("typing");
+// --- PERFORMANCE-TUNED MATRIX RENDERING ENGINE ---
+class MatrixTerminal {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.chars = "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ1023456789".split("");
+        this.fontSize = 14;
+        this.columns = 0;
+        this.drops = [];
+        
+        this.init();
+        window.addEventListener('resize', () => this.init());
+    }
 
-    function type() {
-        if (i < text.length) {
-            element.textContent += text.charAt(i);
-            i++;
-            element.typewriterTimer = setTimeout(type, speed);
-        } else {
-            State.isTyping = false;
-            element.classList.remove("typing");
-            element.typewriterTimer = null;
-            if (callback) callback();
+    init() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.columns = Math.floor(this.canvas.width / this.fontSize);
+        
+        const currentLength = this.drops.length;
+        if (this.columns > currentLength) {
+            for (let i = currentLength; i < this.columns; i++) {
+                this.drops.push(Math.random() * -100); 
+            }
+        } else if (this.columns < currentLength) {
+            this.drops.length = this.columns;
         }
     }
-    type();
-}
 
-function clearTypewriter(element) {
-    if (element.typewriterTimer) {
-        clearTimeout(element.typewriterTimer);
-        element.typewriterTimer = null;
-    }
-    element.classList.remove("typing");
-    element.textContent = "";
-}
+    render() {
+        this.ctx.fillStyle = "rgba(13, 2, 8, 0.06)"; 
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-// --- MATRIX ENGINE ---
-function initMatrixEngine() {
-    const ctx = DOM.canvas.getContext('2d');
-    
-    const resizeCanvas = () => {
-        DOM.canvas.width = window.innerWidth;
-        DOM.canvas.height = window.innerHeight;
-    };
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+        this.ctx.font = `${this.fontSize}px monospace`;
 
-    const chars = "0123456789ABCDEF".split("");
-    const dropSize = 16;
-    const drops = Array(Math.floor(DOM.canvas.width / dropSize)).fill(1);
+        for (let i = 0; i < this.drops.length; i++) {
+            const text = this.chars[Math.floor(Math.random() * this.chars.length)];
+            
+            // Contrast highlights: inject sporadic phosphor flashes for variance
+            this.ctx.fillStyle = Math.random() > 0.985 ? "#ffffff" : "rgba(0, 255, 65, 0.85)";
+            
+            this.ctx.fillText(text, i * this.fontSize, this.drops[i] * this.fontSize);
 
-    function renderMatrix() {
-        ctx.fillStyle = "rgba(13, 2, 8, 0.1)";
-        ctx.fillRect(0, 0, DOM.canvas.width, DOM.canvas.height);
-
-        ctx.fillStyle = "#00ff41";
-        ctx.font = `${dropSize}px monospace`;
-
-        drops.forEach((y, i) => {
-            const text = chars[Math.floor(Math.random() * chars.length)];
-            ctx.fillText(text, i * dropSize, y * dropSize);
-
-            if (y * dropSize > DOM.canvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
+            if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.985) {
+                this.drops[i] = 0;
             }
-            drops[i]++;
-        });
+            this.drops[i] += 0.45; 
+        }
     }
-    setInterval(renderMatrix, CONFIG.MATRIX_SPEED);
 }
 
-// --- SYSTEM INITIALIZATION ---
+// --- DESKTOP RUNTIME ROOT ---
 function initApp() {
-    initMatrixEngine();
+    // 1. Fire up OOP Canvas Matrix Engine
+    if (DOM.canvas) {
+        const engine = new MatrixTerminal(DOM.canvas);
+        const ticker = () => {
+            engine.render();
+            requestAnimationFrame(ticker); 
+        };
+        ticker();
+    }
 
-    // Wire up event listeners explicitly in JS execution context
+    // 2. Apply humanized debounced event routing to input streaming
+    const handleSearch = debounce((e) => {
+        State.filterTerm = e.target.value;
+        renderProfiles();
+    }, 150);
+
     DOM.search.addEventListener('input', handleSearch);
     DOM.toggleSkillsBtn.addEventListener('click', toggleSkillNetwork);
     DOM.joinForm.addEventListener('submit', handleFormSubmit);
 
-    // Orchestrated boot loading sequence
-    runTypewriter("> HACKER_DIRECTORY_V2.EXE", DOM.title, 50, () => {
-        runTypewriter("ESTABLISHING_SECURE_CONNECTION...", DOM.status, 40, () => {
-            updateSystemData(true);
-            setInterval(() => updateSystemData(true), CONFIG.REFRESH_INTERVAL);
-        });
-    });
+    // 3. Initial connection handshakes
+    DOM.title.classList.add('terminal-title-animate');
+    DOM.status.classList.add('terminal-title-animate');
+    
+    updateSystemData(true);
+    setInterval(() => updateSystemData(true), CONFIG.REFRESH_INTERVAL);
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
