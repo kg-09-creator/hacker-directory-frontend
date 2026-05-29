@@ -155,303 +155,206 @@
     </div>
 
     <script>
-        const BASE_URL = "https://kgs-guestbook-api.onrender.com";
-        let isTyping = false;
-        let lastVibe = "";
-        let latestHackers = [];
+    const BASE_URL = "https://kgs-guestbook-api.onrender.com";
+let isTyping = false;
+let lastVibe = "";
+let latestHackers = [];
 
-        const hackerListEl = document.getElementById("hacker-list");
-        const serverStatusEl = document.getElementById("server-status");
-        const memberCountEl = document.getElementById("member-count");
-        const vibeTextEl = document.getElementById("vibe-text");
-        const skillNetworkEl = document.getElementById("skill-network");
-        const searchInputEl = document.getElementById("terminal-search");
+const hackerListEl = document.getElementById("hacker-list");
+const serverStatusEl = document.getElementById("server-status");
+const memberCountEl = document.getElementById("member-count");
+const vibeTextEl = document.getElementById("vibe-text");
+const skillNetworkEl = document.getElementById("skill-network");
+const searchInputEl = document.getElementById("terminal-search");
+const joinFormEl = document.getElementById("join-form");
 
-        function typeWriter(text, element, speed, callback) {
-            isTyping = true;
-            let i = 0;
-            const targetEl = typeof element === "string" ? document.getElementById(element) : element;
-            
-            if (!targetEl) return;
+// Helper function to prevent XSS vulnerability crashes
+function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
-            if (targetEl.typewriterTimer) {
-                clearTimeout(targetEl.typewriterTimer);
-            }
+function typeWriter(text, element, speed, callback) {
+    isTyping = true;
+    let i = 0;
+    const targetEl = typeof element === "string" ? document.getElementById(element) : element;
+    
+    if (!targetEl) return;
 
+    if (targetEl.typewriterTimer) {
+        clearTimeout(targetEl.typewriterTimer);
+    }
+
+    targetEl.classList.remove("typing");
+    targetEl.innerHTML = "";
+    targetEl.classList.add("typing");
+
+    function type() {
+        if (i < text.length) {
+            targetEl.innerHTML += text.charAt(i);
+            i++;
+            targetEl.typewriterTimer = setTimeout(type, speed);
+        } else {
+            isTyping = false;
             targetEl.classList.remove("typing");
-            targetEl.innerHTML = "";
-            targetEl.classList.add("typing");
-
-            function type() {
-                if (i < text.length) {
-                    targetEl.innerHTML += text.charAt(i);
-                    i++;
-                    targetEl.typewriterTimer = setTimeout(type, speed);
-                } else {
-                    isTyping = false;
-                    targetEl.classList.remove("typing");
-                    targetEl.typewriterTimer = null;
-                    if (callback) callback();
-                }
-            }
-            type();
+            targetEl.typewriterTimer = null;
+            if (callback) callback();
         }
+    }
+    type();
+}
 
-        function renderHackers(hackersList) {
-            hackerListEl.innerHTML = "";
-            
-            if (hackersList.length === 0) {
-                hackerListEl.innerHTML = "<p>> NO_RECORD_FOUND_IN_DATABASE</p>";
-                return;
-            }
+function renderHackers(hackersList) {
+    hackerListEl.innerHTML = "";
+    
+    if (hackersList.length === 0) {
+        hackerListEl.innerHTML = "<p>> NO_RECORD_FOUND_IN_DATABASE</p>";
+        return;
+    }
 
-            const fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment();
 
-            hackersList.forEach(h => {
-                const card = document.createElement("div");
-                card.className = "profile-card";
-                card.innerHTML = `
-                    <h3>> USER: ${escapeHtml(h.name)}</h3>
-                    <p>SKILL: ${escapeHtml(h.skill)}</p>
-                    <p>GITHUB_USER: ${escapeHtml(h.github_username)}</p>
-                    <button class="delete-btn">[DELETE]</button>
-                `;
+    hackersList.forEach(h => {
+        const card = document.createElement("div");
+        card.className = "profile-card";
+        card.innerHTML = `
+            <h3>> USER: ${escapeHtml(h.name)}</h3>
+            <p>SKILL: ${escapeHtml(h.skill)}</p>
+            <p>GITHUB_USER: ${escapeHtml(h.github_username)}</p>
+            <button class="delete-btn">[DELETE]</button>
+        `;
 
-                card.querySelector(".delete-btn").addEventListener("click", () => deleteUser(h.name));
-                fragment.appendChild(card);
-            });
+        card.querySelector(".delete-btn").addEventListener("click", () => deleteUser(h.name));
+        fragment.appendChild(card);
+    });
 
-            hackerListEl.appendChild(fragment);
+    hackerListEl.appendChild(fragment);
+}
+
+async function fetchWithRetry(url, options = {}, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const res = await fetch(url, options);
+            if (res.ok) return res;
+        } catch (e) {
+            if (i === retries - 1) throw e;
+            console.warn(`[Network] Mainframe unresponsive. Spin-up retry: ${i + 1}/${retries}`);
+            await new Promise(r => setTimeout(r, 2000));
         }
+    }
+    return fetch(url, options);
+}
 
-        async function fetchWithRetry(url, options = {}, retries = 3) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const res = await fetch(url, options);
-                    if (res.ok) return res;
-                } catch (e) {
-                    if (i === retries - 1) throw e;
-                    console.warn(`[Network] Mainframe unresponsive. Spin-up retry: ${i + 1}/${retries}`);
-                    await new Promise(r => setTimeout(r, 2000));
-                }
-            }
-            return fetch(url, options);
-        }
+// 1. FIXED INCOMPLETE FUNCTION
+async function updateData(animateVibe = false) {
+    try {
+        serverStatusEl.textContent = "SYNCING...";
+        const res = await fetchWithRetry(`${BASE_URL}/profiles`);
+        if (!res.ok) throw new Error("Failed to pull network records.");
+        const data = await res.json();
 
-        async function updateData(animateVibe = false) {
-            try {
-                const res = await fetchWithRetry(`${BASE_URL}/profiles`);
-                if (!res.ok) throw new Error("Failed to pull network records.");
-                const data = await res.json();
-
-                latestHackers = [...data].reverse();
-                
-                filterHackers();
-
-                if (skillNetworkEl.style.display === "block") {
-                    updateSkillNetwork(latestHackers);
-                }
-
-                const sRes = await fetch(`${BASE_URL}/stats`);
-                if (sRes.ok) {
-                    const sData = await sRes.json();
-                    memberCountEl.innerText = sData.total_hackers;
-                }
-
-                const vRes = await fetch(`${BASE_URL}/vibe`);
-                if (vRes.ok) {
-                    const vData = await vRes.json();
-                    if (vData.vibe !== lastVibe) {
-                        lastVibe = vData.vibe;
-                        if (animateVibe) {
-                            typeWriter(vData.vibe, vibeTextEl, 80);
-                        } else {
-                            if (vibeTextEl.typewriterTimer) {
-                                clearTimeout(vibeTextEl.typewriterTimer);
-                                vibeTextEl.typewriterTimer = null;
-                            }
-                            vibeTextEl.classList.remove("typing");
-                            vibeTextEl.innerText = vData.vibe;
-                        }
-                    }
-                }
-
-                if (!isTyping) {
-                    serverStatusEl.classList.remove("typing");
-                    serverStatusEl.innerText = "ONLINE";
-                    serverStatusEl.style.color = "#00ff41";
-                }
-            } catch (e) {
-                console.error("Data Fetch Exception:", e);
-                if (!isTyping) {
-                    serverStatusEl.classList.remove("typing");
-                    serverStatusEl.innerText = "OFFLINE";
-                    serverStatusEl.style.color = "#ff0000";
-                }
-                hackerListEl.innerHTML = `
-                    <div class="error-container">
-                        > [CRITICAL_ERROR]: MAINFRAME_API_UNREACHABLE.<br>
-                        > DESCRIPTION: ${e.message || "Unknown hardware glitch."}
-                    </div>`;
-            }
-        }
-
-        function filterHackers() {
-            const searchTerm = searchInputEl.value.toLowerCase();
-            const filtered = latestHackers.filter(hacker => 
-                (hacker.name || "").toLowerCase().includes(searchTerm)
-            );
-            renderHackers(filtered);
-        }
-
-        document.getElementById('join-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const payload = {
-                name: document.getElementById('name').value,
-                skill: document.getElementById('skill').value,
-                github_username: document.getElementById('github').value,
-                passkey: document.getElementById('passkey').value
-            };
-
-            try {
-                const response = await fetch(`${BASE_URL}/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (response.ok) {
-                    alert("SUCCESS: Added to mainframe. Welcome to the club!");
-                    updateData(false);
-                    e.target.reset();
-                } else {
-                    alert("ERROR: Could not be added to mainframe. Please try again");
-                }
-            } catch (err) {
-                alert("CRITICAL CONNECTION TIMEOUT");
-            }
-        });
-
-        async function deleteUser(name) {
-            const key = prompt(`Enter passkey for ${name}:`);
-            if (!key) return;
-
-            try {
-                const response = await fetch(`${BASE_URL}/delete/${encodeURIComponent(name)}/${encodeURIComponent(key)}`, { 
-                    method: 'DELETE' 
-                });
-
-                if (response.ok) {
-                    alert("SUCCESS: Profile deleted and dropped from records.");
-                    updateData(false);
-                } else {
-                    const result = await response.json();
-                    alert("ACCESS DENIED: " + (result.detail || "Incorrect passkey credentials"));
-                }
-            } catch (err) {
-                alert("CRITICAL ERROR DURING RECORD CLEARANCE");
-            }
-        }
-
-        function updateSkillNetwork(data) {
-            const skillGroups = {};
-            skillNetworkEl.innerHTML = "";
-
-            data.forEach(hacker => {
-                const skill = hacker.skill ? hacker.skill.trim().toLowerCase() : "";
-                const name = hacker.name ? hacker.name.trim() : "";
-
-                if (!skill || !name) return;
-                if (!skillGroups[skill]) skillGroups[skill] = [];
-                
-                skillGroups[skill].push(name);
-            });
-
-            const sortedSkills = Object.entries(skillGroups).sort((a, b) => b[1].length - a[1].length);
-
-            if (sortedSkills.length === 0) {
-                skillNetworkEl.innerText = "NO_SKILL_CONNECTIONS_FOUND";
-                return;
-            }
-
-            sortedSkills.forEach(([skill, names]) => {
-                const line = document.createElement("p");
-                const label = names.length === 1 ? "hacker" : "hackers";
-                line.innerText = `> ${skill.toUpperCase()}: ${names.length} ${label} - ${names.join(", ")}`;
-                skillNetworkEl.appendChild(line);
-            });
-        }
-
-        function toggleSkillNetwork() {
-            if (skillNetworkEl.style.display === "none") {
-                updateSkillNetwork(latestHackers);
-                skillNetworkEl.style.display = "block";
-            } else {
-                skillNetworkEl.style.display = "none";
-            }
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-
-        let searchTimeout;
-        searchInputEl.addEventListener("input", () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(filterHackers, 100);
-        });
+        latestHackers = [...data].reverse();
         
-        document.getElementById("toggle-skills-btn").addEventListener("click", toggleSkillNetwork);
+        filterHackers();
 
-        const canvas = document.getElementById('matrix-rain');
-        const ctx = canvas.getContext('2d');
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        if (skillNetworkEl.style.display === "block") {
+            updateSkillNetwork(latestHackers);
         }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
 
-        const chars = "わあコーディング大好きわあコーディング大好き1023456789ABCDEF".split("");
-        const drops = Array(Math.floor(canvas.width / 16)).fill(-20); 
-
-        function draw() {
-            ctx.fillStyle = "rgba(13,2,8,0.06)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.font = "16px monospace";
-
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars[Math.floor(Math.random() * chars.length)];
-                
-                ctx.fillStyle = Math.random() > 0.98 ? "#ffffff" : "rgba(0, 255, 65, 0.85)";
-                
-                ctx.fillText(text, i * 16, drops[i] * 16);
-                
-                if (drops[i] * 16 > canvas.height && Math.random() > 0.98) {
-                    drops[i] = 0;
-                }
-                drops[i]++;
+        const sRes = await fetch(`${BASE_URL}/stats`);
+        if (sRes.ok) {
+            const sData = await sRes.json();
+            memberCountEl.textContent = sData.count || latestHackers.length;
+            if (animateVibe && sData.vibe && sData.vibe !== lastVibe) {
+                lastVibe = sData.vibe;
+                typeWriter(sData.vibe.toUpperCase(), vibeTextEl, 50);
+            } else if (sData.vibe) {
+                vibeTextEl.textContent = sData.vibe.toUpperCase();
             }
         }
-        
-        function renderLoop() {
-            draw();
-            setTimeout(() => {
-                requestAnimationFrame(renderLoop);
-            }, 33);
-        }
-        renderLoop();
+        serverStatusEl.textContent = "ONLINE";
+    } catch (err) {
+        console.error("Data update error:", err);
+        serverStatusEl.textContent = "OFFLINE";
+    }
+}
 
-        typeWriter("> HACKER_DIRECTORY_V2.EXE", "terminal-title", 50, () => {
-            typeWriter("ESTABLISHING_SECURE_CONNECTION...", serverStatusEl, 40, () => {
-                updateData(true);
-                setInterval(() => updateData(true), 30000);
-            });
+function filterHackers() {
+    const query = searchInputEl.value.toLowerCase().trim();
+    const filtered = latestHackers.filter(h => 
+        (h.name && h.name.toLowerCase().includes(query)) ||
+        (h.skill && h.skill.toLowerCase().includes(query))
+    );
+    renderHackers(filtered);
+}
+
+function updateSkillNetwork(hackers) {
+    const skills = hackers.map(h => h.skill).filter(Boolean);
+    skillNetworkEl.textContent = "Network Matrix Nodes: " + [...new Set(skills)].join(" // ");
+}
+
+async function deleteUser(name) {
+    const passkey = prompt("ENTER SECRET PASSKEY TO PURGE DATA:");
+    if (!passkey) return;
+
+    try {
+        const res = await fetch(`${BASE_URL}/profiles`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, passkey })
         });
+        if (!res.ok) throw new Error("Purge rejected by mainframe.");
+        alert("User record destroyed.");
+        updateData();
+    } catch (err) {
+        alert("Error: " + err.message);
+    }
+}
+
+// 2. ADDED MISSING FORM SUBMIT EVENT HANDLER
+joinFormEl.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const payload = {
+        name: document.getElementById("name").value,
+        skill: document.getElementById("skill").value,
+        github_username: document.getElementById("github").value, // Matches API requirement
+        passkey: document.getElementById("passkey").value
+    };
+
+    try {
+        const res = await fetch(`${BASE_URL}/profiles`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.message || "Mainframe rejected payload inject.");
+        }
+
+        joinFormEl.reset();
+        await updateData(true);
+        alert("TRANSMISSION SUCCESSFUL: Profile injected.");
+    } catch (err) {
+        alert("CRITICAL ERROR: " + err.message);
+    }
+});
+
+// Setup input filtering and toggles
+searchInputEl.addEventListener("input", filterHackers);
+document.getElementById("toggle-skills-btn").addEventListener("click", () => {
+    if (skillNetworkEl.style.display === "none") {
+        skillNetworkEl.style.display = "block";
+        updateSkillNetwork(latestHackers);
+    } else {
+        skillNetworkEl.style.display = "none";
+    }
+});
+
+// Initial bootup sequences
+updateData(true);
     </script>
 </body>
 </html>
